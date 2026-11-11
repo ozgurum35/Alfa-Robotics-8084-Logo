@@ -2,6 +2,7 @@
 
 ## Güncel durum (2026-11-12)
 - **Güncel sürüm: `Yeniden Olusturulan/ALFA 8084 - Amblem v10.ai` ve `ALFA 8084 - Yazi Logo v10.ai`** (önizleme PNG'leri yanında). v8 / v6 ve öncekiler karşılaştırma için duruyor; v9 numarası kullanılmadı. Kök klasördeki iki `.ai` özgün dosyalardır, dokunulmadı.
+- Dışa aktarım: `Yeniden Olusturulan/v10 disa aktarim/` – PDF (baskı, Acrobat 7), SVG, PNG 512/1024/2048/4096 px (saydam). Yazılar yol; hiçbir dosyada font yok (baskıcıda font gerekmez). Kılavuz daire dışa aktarılmadı. Betik: `kaynak/export_v10.jsx` (Illustrator PNG ölçeği en fazla %776 olduğundan 4096 px PDF'ten üretildi).
 - v10 madde madde karar turuyla yapıldı; tüm kararlar ve gerekçeler: `docs/DEVIR v10-2.md` (karar kaydı). Değerlendirme raporu: `docs/Logo Degerlendirme Raporu v10.md`.
 - Doğrulama: eş merkez raporu `kaynak/olc.py` – tüm kontroller geçti; `diff.py` – iki `.ai` dosyası önizlemeyle piksel düzeyinde aynı (fark > 32: 0).
 - Depo: GitHub `ozgurum35/Alfa-Robotics-8084-Logo` (public). Font (Classic Robot) lisans nedeniyle depoda yok; `.ai` üretimi Windows + Illustrator ister.
