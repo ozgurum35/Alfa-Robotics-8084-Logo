@@ -23,6 +23,7 @@ for nm_ in ("up_out", "up_in", "lo_out", "lo_in"):
     head = rep(head, nm_ + " = fillet(clip(", nm_ + " = (clip(")
 head = head.replace(", RCUT)" + chr(10), ")" + chr(10))
 head = rep(head, "[235, 247, 252]", "[208, 233, 232]")
+head = rep(head, "[71, 185, 239]", "[71, 185, 239]")      # SKY (Acik Mavi)
 head = rep(head, "HW, RC, WF = 154.0, 18.0, 14.0     # shield half width, top corner radius, frame width",
            "RC, WF = 18.0, 14.0                # top corner radius, frame width")
 head = rep(head, "GP = 6.5 ", '''NOSE0, RN0 = (280.0, 55.27097877), 24.0   # nose arc of the navy silhouette (checked in the report)
