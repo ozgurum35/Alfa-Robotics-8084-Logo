@@ -1,0 +1,4 @@
+kaynak/tmp/
+*.bak
+__pycache__/
+~ai-*.tmp
