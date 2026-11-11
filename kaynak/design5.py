@@ -256,9 +256,52 @@ skyR = anchors(fillet(loopR, 0, only={3: 1.0, nR - 2: 1.5, nR - 1: RX}))
 GL, Xtip = arc_y(shI[4], 119.9, -1), arc_x(inA, 205.0)
 g0 = {"p": GL, "i": None, "o": FG[0]["o"] + (GL - FG[0]["p"])}
 back = [g0, FG[1], dict(FG[2], o=None), {"p": Xtip, "i": V(146.0, 74.0), "o": None}]
-skyTL = anchors([dict(shI[4], a=GL), shI[5], dict(inA, b=Xtip)], closed=False)
-skyTL[-1]["o"] = back[3]["i"]
-skyTL += [{"p": a["p"], "i": a["o"], "o": a["i"]} for a in (back[2], back[1])]
+BACK1 = True                           # back line from its corner to the frame as ONE even curve (the frame moved out
+if BACK1:                              # with the wider shield, so the original short end piece made a kink)
+    _p2 = FG[2]["p"]
+    _L = math.hypot(*(GL - _p2)) / 3
+    _t2 = unit(V(98.3, 109.4) - _p2)                     # original tangent leaving the corner (node 2 of W["G"])
+    _t0 = unit(V(52.0, 118.1) - V(48.1, 119.9))          # original tangent at the frame (node 0)
+    g0 = {"p": GL, "i": None, "o": GL + _L * _t0}
+    back = [g0, dict(FG[2], i=_p2 + _L * _t2, o=None), {"p": Xtip, "i": V(146.0, 74.0), "o": None}]
+SKY_EAR = False                        # sky edge above the ear = the ear's top line offset by WE (constant navy)
+WE = 8.0
+if SKY_EAR:
+    _e = [V(*W["B"][14]["p"]), V(100.0, 116.3), V(*W["B"][0]["i"]), V(*W["B"][0]["p"])]   # ear top (see eye below)
+    _bz = lambda t: (1 - t) ** 3 * _e[0] + 3 * (1 - t) ** 2 * t * _e[1] + 3 * (1 - t) * t * t * _e[2] + t ** 3 * _e[3]
+    def _sub(t0, t1):                   # sub-curve of the ear top by de Casteljau
+        def split(P, t):
+            a, b, c = P[0] + t * (P[1] - P[0]), P[1] + t * (P[2] - P[1]), P[2] + t * (P[3] - P[2])
+            d, e = a + t * (b - a), b + t * (c - b)
+            f = d + t * (e - d)
+            return [P[0], a, d, f], [f, e, c, P[3]]
+        R_ = split(_e, t0)[1]
+        return split(R_, (t1 - t0) / (1 - t0))[0]
+    def _off(P, w):                     # Tiller-Hanson offset of a cubic towards the sky (left of travel = up)
+        ln = [(P[k] + w * V((P[k + 1] - P[k])[1], -(P[k + 1] - P[k])[0]) / math.hypot(*(P[k + 1] - P[k])),
+               unit(P[k + 1] - P[k])) for k in range(3)]
+        return [ln[0][0], lineX(ln[0][0], ln[0][1], ln[1][0], ln[1][1]), lineX(ln[1][0], ln[1][1], ln[2][0], ln[2][1]),
+                ln[2][0] + math.hypot(*(P[3] - P[2])) * ln[2][1]]
+    _bd = unit(V(146.0, 74.0) - FG[2]["p"])            # back line leaving its corner towards the snout
+    _ts = np.linspace(0.0, 0.97, 400)
+    _q = [_off(_sub(max(t_ - 0.01, 0.0), t_ + 0.01), -WE)[1] for t_ in _ts[1:]]
+    _sd = [((q_ - FG[2]["p"]) @ V(_bd[1], -_bd[0])) for q_ in _q]
+    t_r = next(_ts[1:][k] for k in range(1, len(_q)) if _sd[k - 1] * _sd[k] <= 0)
+    t_l = 0.85                          # left of this the ear top turns down into its tip: go straight to the frame
+    _o = _off(_sub(t_r, t_l), -WE)
+    _dl = unit(_o[3] - _o[2])
+    GL = min(hits(shI[4], _o[3], _dl), key=lambda q: math.hypot(*(q - _o[3])))
+    g0 = {"p": GL, "i": None, "o": None}
+    back = [g0, {"p": _o[3], "i": None, "o": _o[2]}, {"p": _o[0], "i": _o[1], "o": None},
+            {"p": Xtip, "i": V(146.0, 74.0), "o": None}]
+    print("sky over ear: corner", np.round(_o[0], 2), "frame", np.round(GL, 2), "t %.3f" % t_r)
+    skyTL = anchors([dict(shI[4], a=GL), shI[5], dict(inA, b=Xtip)], closed=False)
+    skyTL[-1]["o"] = back[3]["i"]
+    skyTL += [{"p": a_["p"], "i": a_["o"], "o": a_["i"]} for a_ in (back[2], back[1])]
+else:
+    skyTL = anchors([dict(shI[4], a=GL), shI[5], dict(inA, b=Xtip)], closed=False)
+    skyTL[-1]["o"] = back[-1]["i"]
+    skyTL += [{"p": a["p"], "i": a["o"], "o": a["i"]} for a in reversed(back[1:-1])]
 skyTL[0]["i"] = g0["o"]
 
 # --- sky notch on the left edge
@@ -289,7 +332,7 @@ up_navy = clip(nav + sh0[1:], PU, nUp)
 # --- ice details: eye + ear, mane blades; navy details: closed eye, iris
 W["B"][14]["o"] = V(100.0, 116.3)      # ear top: one clean sweep instead of a stepped joint
 del W["B"][15]
-eye = [{k: (None if a_[k] is None else a_[k] + V(0.0, 5.0)) for k in ("p", "i", "o")} for a_ in fair(W["B"])]
+eye = [dict(a_) for a_ in W["B"]]      # ear/eye: original nodes in place (user); only the top is one clean sweep (above)
 _s = V(5.0, 4.5)
 _h = [W["H"][k] for k in range(4)]
 lid = [{"p": _h[0]["p"] + _s, "i": None, "o": None}, {"p": _h[1]["p"] + _s, "i": _h[1]["i"] + _s, "o": None},
@@ -513,6 +556,7 @@ def clearance(cs):
 
 NUM_TR, NUM_CLEAR = 0.0, 1.0
 cen0 = panel.mean(axis=0)
+NUM_CAPFIX = 18.5                     # 8084 size chosen by the user (pt); None = largest that fits NUM_CLEAR
 best = None
 for capn in np.arange(26.0, 9.0, -0.5):
     for du in np.arange(-12, 12.01, 2.0):
@@ -524,7 +568,23 @@ for capn in np.arange(26.0, 9.0, -0.5):
     if best:
         break
 _b0 = best
-for capn in np.arange(_b0[1] + 3.0, _b0[1] - 0.01, -0.25):
+if NUM_CAPFIX:                                # fixed size: place it where the margin to the panel edge is largest
+    best = None
+    for du in np.arange(-12, 12.01, 1.0):
+        for dn in np.arange(-18, 26.01, 1.0):
+            cs = place(text_contours("8084", NUM_TR), cen0 + du * dU + dn * nUp, NUM_CAPFIX)[0]
+            c = clearance(cs)
+            if best is None or c > best[0]:
+                best = (c, NUM_CAPFIX, cs, du, dn)
+    _b1 = best
+    for du in np.arange(_b1[3] - 1, _b1[3] + 1.01, 0.25):
+        for dn in np.arange(_b1[4] - 1, _b1[4] + 1.01, 0.25):
+            cs = place(text_contours("8084", NUM_TR), cen0 + du * dU + dn * nUp, NUM_CAPFIX)[0]
+            c = clearance(cs)
+            if c > best[0]:
+                best = (c, NUM_CAPFIX, cs, du, dn)
+    _b0 = best
+for capn in ([] if NUM_CAPFIX else np.arange(_b0[1] + 3.0, _b0[1] - 0.01, -0.25)):
     for du in np.arange(_b0[3] - 3, _b0[3] + 3.01, 0.5):
         for dn in np.arange(_b0[4] - 3, _b0[4] + 9.01, 0.5):
             cs = place(text_contours("8084", NUM_TR), cen0 + du * dU + dn * nUp, capn)[0]

@@ -86,7 +86,8 @@ def fit_rob(s_, centre, cap_perp, length):
 mid = rep(mid, 'robotics, rob_tr = fit_text("ROBOTICS", (bL + bR) / 2,', 'robotics, rob_tr = fit_rob("ROBOTICS", (bL + bR) / 2 + ROB_DU * dU,')
 mid = rep(mid, "NUM_TR, NUM_CLEAR = 0.0, 4.0", "NUM_TR, NUM_CLEAR = 0.0, 1.0")   # min. gap 8084 - panel edge
 # 8084: coarse scan over a wide area of the panel, then a narrow fine scan around the best spot (largest size first)
-mid = rep(mid, seg(348, 358), """best = None
+mid = rep(mid, seg(348, 358), """NUM_CAPFIX = 18.5                     # 8084 size chosen by the user (pt); None = largest that fits NUM_CLEAR
+best = None
 for capn in np.arange(26.0, 9.0, -0.5):
     for du in np.arange(-12, 12.01, 2.0):
         for dn in np.arange(-18, 14.01, 2.0):
@@ -97,7 +98,23 @@ for capn in np.arange(26.0, 9.0, -0.5):
     if best:
         break
 _b0 = best
-for capn in np.arange(_b0[1] + 3.0, _b0[1] - 0.01, -0.25):
+if NUM_CAPFIX:                                # fixed size: place it where the margin to the panel edge is largest
+    best = None
+    for du in np.arange(-12, 12.01, 1.0):
+        for dn in np.arange(-18, 26.01, 1.0):
+            cs = place(text_contours("8084", NUM_TR), cen0 + du * dU + dn * nUp, NUM_CAPFIX)[0]
+            c = clearance(cs)
+            if best is None or c > best[0]:
+                best = (c, NUM_CAPFIX, cs, du, dn)
+    _b1 = best
+    for du in np.arange(_b1[3] - 1, _b1[3] + 1.01, 0.25):
+        for dn in np.arange(_b1[4] - 1, _b1[4] + 1.01, 0.25):
+            cs = place(text_contours("8084", NUM_TR), cen0 + du * dU + dn * nUp, NUM_CAPFIX)[0]
+            c = clearance(cs)
+            if c > best[0]:
+                best = (c, NUM_CAPFIX, cs, du, dn)
+    _b0 = best
+for capn in ([] if NUM_CAPFIX else np.arange(_b0[1] + 3.0, _b0[1] - 0.01, -0.25)):
     for du in np.arange(_b0[3] - 3, _b0[3] + 3.01, 0.5):
         for dn in np.arange(_b0[4] - 3, _b0[4] + 9.01, 0.5):
             cs = place(text_contours("8084", NUM_TR), cen0 + du * dU + dn * nUp, capn)[0]
