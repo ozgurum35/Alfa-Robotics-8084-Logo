@@ -51,7 +51,7 @@ PHI = 24.0            # A legs: +-PHI from vertical
 YU = 209.0            # upper cut line at the axis
 RCUT = 3.0            # rounding of the cut corners
 WO = WF               # outline width around the head = frame width
-NAVY, SKY, ICE = [0, 58, 111], [71, 185, 239], [208, 233, 232]
+NAVY, SKY, ICE = [0, 58, 111], [99, 196, 242], [208, 233, 232]
 
 dU = V(math.cos(rad(TH)), -math.sin(rad(TH)))      # along the lettering, rising to the right
 nUp = V(-math.sin(rad(TH)), -math.cos(rad(TH)))    # perpendicular, pointing up
@@ -160,12 +160,13 @@ def tidy(an):
     return out
 
 
-WJT, WJF, WJU = 8.0, 8.0, 8.0        # navy around the jaw: lip side, front, underside and throat
+WJT, WJF, WJU = 10.0, 10.0, 10.0        # navy around the jaw: lip side, front, underside and throat
 WM, RX = 9.0, 3.0                      # outline inside the shield (lip, jaw, throat); small outer roundings
 A33 = 33.0
 d33, n33 = V(cosd(A33), -sind(A33)), V(-sind(A33), -cosd(A33))
 XF, RN = 290.0, 10.0
-LIPR = 5.0                             # nose front -> upper lip
+RXN, RXS = 3.0, 3.0                     # nose front meets the frame: outer (white) corner, sky corner below it
+LIPR = 8.0                             # nose front -> upper lip
 Qi = V(267.6, 51.4)
 inA, topA = shI[0], sh0[0]
 xo = XF + WO
@@ -176,10 +177,11 @@ Pfb = min(hits(inA, Qi, d33), key=lambda p: abs(p[0] - 237))
 Ki = lineX(Qi, d33, V(XF, 0), V(0, 1))
 H11 = V(XF, 82.0)
 # mouth as in the original drawing: hollow lip line, two fur ticks at the corner, rising jaw with a blunt front
-Cm, JS = V(260.7, 116.9), V(260.5, 133.4)
+MC, LSG = V(0.0, 0.0), 2.6              # mouth corner moved in (user: towards the nose) / sagitta of the hollow lip line
+Cm, JS = V(260.7, 116.9) + MC, V(260.5, 133.4)
 ch_ = Cm - H11
-rl_ = (ch_ @ ch_ / 4 + 2.6 ** 2) / (2 * 2.6)
-cl = (H11 + Cm) / 2 - (rl_ - 2.6) * perp(unit(ch_))
+rl_ = (ch_ @ ch_ / 4 + LSG ** 2) / (2 * LSG)
+cl = (H11 + Cm) / 2 - (rl_ - LSG) * perp(unit(ch_))
 JA, JF = 13.5, 105.0
 RJT, RJB = 5.0, 10.0                    # outer (navy) radii of the jaw corners; ice = outer - outline, sharp if negative
 ja = V(cosd(JA), -sind(JA))
@@ -206,8 +208,22 @@ ice_r = fillet([Ln(Qi, Ki), Ln(Ki, H11), Ar(cl, H11, Cm, -1)], 0, closed=False, 
 NOSE_C = next(q["c"] for q in ice_r if q["t"] == "A" and abs(q["r"] - RN) < 1e-6)
 JIN = {k_: max(v_, 1.0) for k_, v_ in ((0, RJT - (WJT + WJF) / 2), (1, RJB - (WJF + WJU) / 2))}   # concentric, or 1 pt if the outline is too thick
 jaw = fillet([Ln(JS, JT), Ln(JT, JB1), Ln(JB1, JB2)], 0, closed=False, only=JIN) + [a9, a10]
+DJ = 0.0                               # jaw outline thickened by moving the ICE inwards (the sky edge stays where it is)
+if DJ:
+    def _oo(pr, w):                    # same as off_out below
+        if pr["t"] == "L":
+            n_ = -perp(unit(pr["b"] - pr["a"]))
+            return Ln(pr["a"] + w * n_, pr["b"] + w * n_)
+        k_ = (pr["r"] + pr["s"] * w) / pr["r"]
+        return Ar(pr["c"], pr["c"] + k_ * (pr["a"] - pr["c"]), pr["c"] + k_ * (pr["b"] - pr["c"]), pr["s"])
+    _l = [_oo(Ln(JS, JT), -DJ), _oo(Ln(JT, JB1), -DJ), _oo(Ln(JB1, JB2), -DJ)]
+    _a9, _a10 = _oo(a9, -DJ), _oo(a10, -DJ)
+    _d = [unit(q["b"] - q["a"]) for q in _l]
+    JT2, JB12 = lineX(_l[0]["a"], _d[0], _l[1]["a"], _d[1]), lineX(_l[1]["a"], _d[1], _l[2]["a"], _d[2])
+    JIN2 = {k_: max(v_, 1.0) for k_, v_ in ((0, RJT - (WJT + WJF) / 2 - DJ), (1, RJB - (WJF + WJU) / 2 - DJ))}
+    jaw = fillet([Ln(_l[0]["a"], JT2), Ln(JT2, JB12), Ln(JB12, _a9["a"])], 0, closed=False, only=JIN2) + [_a9, _a10]
 chain = ice_r + jaw
-ticks = [{"p": V(263.9, 116.4), "i": None, "o": None}, {"p": V(259.8, 126.3), "i": V(260.6, 121.1), "o": None},
+ticks = [{"p": V(263.9, 116.4) + MC, "i": None, "o": None}, {"p": V(259.8, 126.3) + MC, "i": V(260.6, 121.1) + MC, "o": None},
          {"p": V(266.4, 127.5), "i": None, "o": None}]
 hj_ = anchors(jaw, closed=False)
 hj_[0]["i"] = V(263.0, 129.6)
@@ -250,7 +266,7 @@ Xd = wr[-1]["b"]
 QR = hits(shI[2], PIN, dU)[0]
 loopR = [Ar(CT, Xa, inA["b"]), shI[1], dict(shI[2], b=QR), Ln(QR, Xd)] + [rev(p) for p in reversed(wr)]
 nR = len(loopR)
-skyR = anchors(fillet(loopR, 0, only={3: 1.0, nR - 2: 1.5, nR - 1: RX}))
+skyR = anchors(fillet(loopR, 0, only={3: 1.0, nR - 2: 1.5, nR - 1: RXS}))
 
 # --- sky, upper left: frame edge + the line of the back
 GL, Xtip = arc_y(shI[4], 119.9, -1), arc_x(inA, 205.0)
@@ -326,7 +342,7 @@ Kn = lineX(Qn, d33, V(xo, 0), V(0, 1))
 X1 = min(hits(topA, Qn, d33), key=lambda p: abs(p[0] - 232))
 X2 = hits(topA, V(xo, 0), V(0, 1))[0]
 nav = fillet([Ar(CT, topA["a"], X1), Ln(X1, Kn), Ln(Kn, X2), Ar(CT, X2, topA["b"])], 0, closed=False,
-             only={0: RX, 1: RN + WO, 2: RX})
+             only={0: RX, 1: RN + WO, 2: RXN})
 up_navy = clip(nav + sh0[1:], PU, nUp)
 
 # --- ice details: eye + ear, mane blades; navy details: closed eye, iris

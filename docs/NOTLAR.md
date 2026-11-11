@@ -1,15 +1,19 @@
 # ALFA Robotics 8084 – Logo Notları
 
 ## Güncel durum (2026-11-12)
-- **v10 karar turu sürüyor; güncel durum ve açık maddeler: `docs/DEVIR v10-2.md` başı.** Kararların çoğu `kaynak/` içine uygulandı, v10 `.ai` henüz üretilmedi.
-- Depo: GitHub `ozgurum35/Alfa-Robotics-8084-Logo`. Font (Classic Robot) lisans nedeniyle depoda yok; `.ai` üretimi Windows + Illustrator ister.
-- Güncel dosyalar: `Yeniden Olusturulan/ALFA 8084 - Amblem v8.ai` ve `ALFA 8084 - Yazi Logo v6.ai`. v9 (kare sınır, ortalanmış daire) denendi, kullanıcı beğenmedi; dosyaları silindi.
-- v4–v7 dosyaları önceki turlar (karşılaştırma için duruyor). `*_v2.ai`: özgün çizimin yalnızca teknik temizliği. Kök klasördeki iki `.ai` özgün dosyalardır, dokunulmadı.
-- Kaynak (v8 durumunda, `kaynak/` içinde tam ve doğrulanmış): `kaynak/mk5.py`, `design.py` (yazı, font, çıktı) ile `wolf5_block.py` (kurt) dosyalarından `design5.py` üretir. `geo.py` geometri kiti, `mkjsx2.py` Illustrator betiği üretir, `gridview.py` ızgaralı önizleme, `logo1.json` özgün kurt düğümleri.
-- Devir belgesi: `docs/DEVIR v10.md` — v8 üzerinde 13 düzeltme kararlaştırıldı, henüz uygulanmadı; sıradaki sürüm v10.
-- Değerlendirme raporu: `docs/Logo Degerlendirme Raporu v5.md` (kullanıcıyla birlikte değerlendirilecek, 7 açık karar).
+- **Güncel sürüm: `Yeniden Olusturulan/ALFA 8084 - Amblem v10.ai` ve `ALFA 8084 - Yazi Logo v10.ai`** (önizleme PNG'leri yanında). v8 / v6 ve öncekiler karşılaştırma için duruyor; v9 numarası kullanılmadı. Kök klasördeki iki `.ai` özgün dosyalardır, dokunulmadı.
+- v10 madde madde karar turuyla yapıldı; tüm kararlar ve gerekçeler: `docs/DEVIR v10-2.md` (karar kaydı). Değerlendirme raporu: `docs/Logo Degerlendirme Raporu v10.md`.
+- Doğrulama: eş merkez raporu `kaynak/olc.py` – tüm kontroller geçti; `diff.py` – iki `.ai` dosyası önizlemeyle piksel düzeyinde aynı (fark > 32: 0).
+- Depo: GitHub `ozgurum35/Alfa-Robotics-8084-Logo` (public). Font (Classic Robot) lisans nedeniyle depoda yok; `.ai` üretimi Windows + Illustrator ister.
+- Açık konular (rapordan): koyu zemin sürümü, ≤ 64 px sade sürüm, tek renk sürümler, CMYK/Pantone, font ticari lisansı. Kılavuz daire gizli katmanda; kullanıcı sonunda kaldırılmasını isteyebilir. Burun ön yüzü–çerçeve dış köşesi (`RXN` 3 pt) değiştirilmedi.
 
-## Tasarım kararları (v5)
+## v10 kararları (özet)
+- Renkler: Lacivert `#003A6F`, Açık Mavi `#63C4F2` (özgün `#80CFF4` ile v8 `#47B9EF` arası), Buz `#D0E9E8` (özgünle aynı).
+- İç hat kuralı: iç kavis = dış kavis − kontur; verilemiyorsa iç köşe 1 pt. Çene çevresi 10 pt; kurdun altı ve 8084 üstü şerit 8 pt; çerçeve 14 pt.
+- "Özgündeki gibi" denen yerler özgün düğümlerle birebir: göz (hattan ayrık), sol yele kıvrımı, boyun bıçağı (+ boğaz hattı bıçak ucuna varır, 4 pt sağa), sol buz yele (sol kenarı çerçeve iç yayında, 8 pt yukarı, uç 6 pt uzun), kulak (üst basamak düzeltildi), sırt çizgisi tek kavis.
+- ROBOTICS: özgün gibi yatay %117 (eğim 17,2°), bandın üst köşelerinde başlar/biter. 8084: 18,5 pt. Kalkan 6 teğet noktalı daireye oturur. Kesim köşeleri keskin.
+
+## Tasarım kararları (v5–v8, bir kısmı v10'da değişti)
 - Yazı açısı 15° = Classic Robot italik açısı; harf gövdeleri tam dikey.
 - Kalkan: yay + doğru, simetrik; çerçeve 14 pt gerçek öteleme; alt uç yarıçapı 20 pt. Alt panelin üst şeridi 6,5 pt (8084 alanı büyüsün diye).
 - ALFA: yükseklik 62 pt, çizgi 18 pt, iki uzun dış A bacağı 21 pt (kullanıcı isteği), A bacakları ±24°, L = F genişliği. F kolları arası 6,5 pt.
