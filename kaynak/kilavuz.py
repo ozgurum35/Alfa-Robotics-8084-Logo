@@ -132,7 +132,7 @@ td, th { padding: 4pt 5pt; vertical-align: top; text-align: left; }
 th { color: #ffffff; background-color: #003A6F; font-size: 9pt; }
 tr.z td { background-color: #f2f5f8; }
 td.c { width: 50%; padding: 0 8pt 10pt 0; }
-td.t { width: 96pt; padding: 3pt 4pt; vertical-align: middle; }
+td.t { width: 192pt; padding: 3pt 4pt; vertical-align: middle; }
 ul { margin: 2pt 0 2pt 0; padding-left: 12pt; }
 .lk { font-size: 8.5pt; }
 .note { color: #5b6775; font-size: 8.5pt; }
@@ -198,16 +198,20 @@ for n, src, bg in (("t0.png", fname(EM, "Renkli", " 512px.png"), WHITE), ("t1.pn
     if bg == WHITE: ImageDraw.Draw(c).rectangle((0, 0, 239, 149), outline=(210, 216, 222), width=2)
     c.convert("RGB").save(IMG + n)
 def thumbs(b):
-    return "".join(f'<a href="{tree(f)}"><img src="{im}" width="46"/></a> ' for im, f in THUMB[b])
-need_rows = "".join(f'<tr class="{"z" if i % 2 else ""}"><td class="t">{thumbs(b)}</td><td>{a}</td><td>{ver(b)}</td><td>{c}</td></tr>' for i, (a, b, c) in enumerate(NEED))
+    return "".join(f'<a href="{tree(f)}"><img src="{im}" width="92"/></a> ' for im, f in THUMB[b])
+def need_table(rows):
+    r = "".join(f'<tr class="{"z" if i % 2 else ""}"><td class="t">{thumbs(b)}</td><td>{a}</td><td>{ver(b)}</td><td>{c}</td></tr>' for i, (a, b, c) in enumerate(rows))
+    return f'<table><tr><th style="width:192pt">Logo</th><th>İhtiyaç</th><th>Sürüm (klasörü açar)</th><th>Dosya (dosyayı açar)</th></tr>{r}</table>'
+HALF = 6  # large thumbnails: the table runs over two pages
 
 PAGES = [
     ("Hangi işe hangi dosya?", f"""
 <p>İhtiyacınızı bulun ve <b>mavi bağlantıya</b> tıklayın (internet gerekir): <b>Sürüm</b> sütunu o sürümün klasörünü (bütün biçimler) GitHub'da açar, <b>Dosya</b> sütunu dosyanın kendisini açar veya indirir.
 Aynı dosyalar ZIP paketinde de aynı klasör adlarıyla bulunur. Her sürüm <b>.ai</b>, <b>.pdf</b>, <b>Baski CMYK.pdf</b>, <b>.svg</b> ve
-<b>512 / 1024 / 2048 / 4096 px .png</b> olarak vardır; hepsine sayfa 2–3'teki bağlantılardan ulaşabilirsiniz. Resme tıklamak da klasörü açar.</p>
-<table><tr><th style="width:96pt">Logo</th><th>İhtiyaç</th><th>Sürüm (klasörü açar)</th><th>Dosya (dosyayı açar)</th></tr>{need_rows}</table>
+<b>512 / 1024 / 2048 / 4096 px .png</b> olarak vardır; hepsine sayfa 3–4'teki bağlantılardan ulaşabilirsiniz. Resme tıklamak da klasörü açar.</p>
+{need_table(NEED[:HALF])}
 """),
+    ("Hangi işe hangi dosya? (devam)", need_table(NEED[HALF:])),
     ("Logo sürümleri – Amblem", f"<p>Amblem takımın ana logosudur. Zeminin rengine göre sürümü seçin; bağlantılar dosyayı açar.</p>{grid(cards[:4])}"),
     ("Logo sürümleri – Yazı Logo ve Profil", f"<p>Yazı logo, amblemin sığmadığı yatay ve dar alanlar içindir.</p>{grid(cards[4:8])}"),
     ("Renkler", """
