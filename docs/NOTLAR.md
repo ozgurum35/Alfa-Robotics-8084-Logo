@@ -10,6 +10,7 @@
 - v10 madde madde karar turuyla yapıldı; tüm kararlar ve gerekçeler: `docs/DEVIR v10-2.md` (karar kaydı). Değerlendirme raporu: `docs/Logo Degerlendirme Raporu v10.md`.
 - Doğrulama: eş merkez raporu `kaynak/olc.py` – tüm kontroller geçti; `diff.py` – iki `.ai` dosyası önizlemeyle piksel düzeyinde aynı (fark > 32: 0).
 - Depo: GitHub `ozgurum35/Alfa-Robotics-8084-Logo` (public). Font (Classic Robot) lisans nedeniyle depoda yok; `.ai` üretimi Windows + Illustrator ister.
+- **Sürüm ailesi (2026-11-12, yayın onayı bekliyor):** `Yeniden Olusturulan/v10 surum ailesi/` – Amblem / Simge (renkli, koyu zemin = 8 pt beyaz kenar, tek renk lacivert, tek renk beyaz), Yazı Logo (renkli, tek renk lacivert / beyaz), Profil, Favicon, `Logo Kullanim Kilavuzu.pdf`. Renkli sürümlerde ROBOTICS gerçek beyaz dolgu. Simge = kalkan üstü + kurt (kullanıcı emin değil, sonra vazgeçilebilir); 16 px'te zayıf. Üretim: `kaynak/aile_v10.jsx` (Illustrator; Live Pathfinder önce grup ister, Minus Front yalnız en arkadaki nesneyi keser → önce bileşik yol), `aile_png.py`, `kilavuz.py`. CMYK/Pantone yapılmadı (kullanıcı anlamadı, açıklanacak).
 - **Değerlendirme raporu 2 (2026-11-12):** `docs/Logo Degerlendirme Raporu v10-2.md` (UI/UX Pro Max + Brand/Design skill). Tasarımda hata yok; eksikler sürüm ailesi: koyu zemin (beyaz kenar), ROBOTICS saydam → beyaz dolgu, simge sürümü, tek renk, CMYK/Pantone, kullanım kılavuzu. Kullanıcıyla sıra belirlenecek. Font ticari lisansı açık. Kılavuz daire gizli katmanda. Burun–çerçeve köşesi (`RXN` 3 pt) değiştirilmedi.
 
 ## v10 kararları (özet)
