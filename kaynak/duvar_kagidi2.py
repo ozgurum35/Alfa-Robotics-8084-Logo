@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 from duvar_kagidi import (W, H, CX, CY, FOOT_Y, YY, XX, SKY, ICE, WHITE, OUT, svg, line, poly, shape, circle, rot,
                           path, arr_img, mix, dist, alpha_mul, clear_zone, clock_dim, scale_alpha, glow, add, logo,
-                          font, text, footer, finish, preview)
+                          font, text, footer, finish, preview, DESK, K, kk, kg)
 
 
 # ---------- helpers ----------
@@ -27,11 +27,11 @@ def paste_blur(base, im, x, y, blur):
     base.alpha_composite(g.filter(ImageFilter.GaussianBlur(blur)) if blur else g, (x - pad, y - pad))
 
 
-def fx_logo(base, width=1320, cy=CY, cx=CX, fx=(), shadow=0.55):
+def fx_logo(base, width=1320, cy=CY, cx=CX, fx=(), shadow=0.55, k=K):
     """Logo with effects. fx items: ('neon', color, px, blur, k) outer neon rim; ('extrude', c0, c1, steps, dx, dy);
     ('split', c1, c2, d) RGB split; ('holo', k) rainbow sheen on light areas; ('pixel', block); ('hard', color, dx, dy)
     hard offset shadow; ('outline', color, px) solid outline; ('slices', n, d) glitch slices; ('glow', color, blur, k)."""
-    L = logo(width)
+    L = logo(round(width * k))
     x, y = round(cx - L.width / 2), round(cy - L.height / 2)
     A = L.getchannel("A")
     if shadow: paste_blur(base, solid(A, (0, 0, 0), shadow), x, y + 35, 40)
@@ -97,11 +97,11 @@ def ridge(rng, y0, amp, n=16):
 
 # ---------- 11. synthwave ----------
 def d_synthwave():
-    rng = np.random.default_rng(11); hz = 0.68 * H
+    rng = np.random.default_rng(11); hz = (0.72 if DESK else 0.68) * H
     t = np.clip(YY / hz, 0, 1)
     a = np.where((t < 0.55)[..., None], mix((18, 4, 48), (110, 18, 120), t / 0.55), mix((110, 18, 120), (255, 96, 110), (t - 0.55) / 0.45))
     a = np.where((YY > hz)[..., None], mix((40, 6, 70), (8, 2, 24), (YY - hz) / (H - hz)), a)
-    sc, r = (CX, 0.50 * H), 900
+    sc, r = ((CX, CY), kk(900)) if DESK else ((CX, 0.50 * H), 900)
     ds = dist(*sc); inside = (ds < r) & (YY < hz)
     st = (YY - (sc[1] - r)) / (2 * r)
     yb = YY - (sc[1] + 0.05 * r)
@@ -109,24 +109,24 @@ def d_synthwave():
     cut = (yb > 0) & ((yb % 90) < gap)
     sun = mix((255, 236, 90), (255, 40, 150), st * 1.15)
     a = np.where((inside & ~cut)[..., None], sun, a)
-    light(a, np.clip(1 - ds / 1700, 0, 1) ** 2 * (YY < hz), (120, 30, 70))
+    light(a, np.clip(1 - ds / kk(1700), 0, 1) ** 2 * (YY < hz), (120, 30, 70))
     base = arr_img(a)
-    base.alpha_composite(alpha_mul(stars(rng, 160, 0, hz - 500, 4), clock_dim(0.7) * (dist(*sc) > r + 40)))
+    base.alpha_composite(alpha_mul(stars(rng, 160, 0, hz - (150 if DESK else 500), 4), clock_dim(0.7) * (dist(*sc) > r + 40)))
     g = []
-    for k in range(-14, 15):
+    for k in (range(-24, 25) if DESK else range(-14, 15)):
         g.append(line([(CX, hz), (CX + k * 330, H + 20)], (255, 60, 220), 5, 0.9))
     z = 1.0
     while True:
-        y = hz + 260 / z * 6
+        y = hz + (0.75 * (H - hz) if DESK else 260 * 6) / z
         if y > H: z += 0.35; continue
         if y - hz < 12: break
         g.append(line([(0, y), (W, y)], (255, 60, 220), 5, 0.9)); z += 0.55
-    add(base, svg(g), np.clip((YY - hz) / 250, 0, 1), ((10, 1.2), (30, 0.8)))
+    add(base, svg(g), np.clip((YY - hz) / (120 if DESK else 250), 0, 1), ((10, 1.2), (30, 0.8)))
     m = []
-    R = [(x, y + (hz - y) * (1 - min(1, abs(x - CX) / 900) ** 2) * 0.95) for x, y in ridge(rng, hz, 380, 12)]  # mountains at the sides only
+    R = [(x, y + (hz - y) * (1 - min(1, abs(x - CX) / kk(900)) ** 2) * 0.95) for x, y in ridge(rng, hz, 300 if DESK else 380, 20 if DESK else 12)]  # mountains at the sides only
     m.append(poly(R + [(W + 100, hz + 2), (-100, hz + 2)], fill=(30, 6, 60), fo=1)); m.append(line(R, (0, 240, 255), 5, 0.95))
     add(base, svg(m), glows=((12, 1.0),))
-    fx_logo(base, 1300, cy=round(0.50 * H), fx=(("extrude", (40, 0, 80), (255, 50, 170), 26, 2.2, 2.2), ("neon", (255, 80, 220), 22, 40, 0.9)))
+    fx_logo(base, 1300, cy=round(sc[1]), fx=(("extrude", (40, 0, 80), (255, 50, 170), 26, 2.2, 2.2), ("neon", (255, 80, 220), 22, 40, 0.9)))
     footer(base, color=(0, 240, 255))
     return base
 
@@ -139,18 +139,19 @@ def d_glitch():
     base = arr_img(a)
     g = []
     COLS = [(0, 255, 240), (255, 0, 170), (255, 230, 0), (120, 80, 255)]
-    for band in range(14):
-        yc = rng.uniform(0.25 * H, 0.98 * H)
+    for band in range(18 if DESK else 14):
+        yc = rng.uniform(0.02 * H if DESK else 0.25 * H, 0.98 * H)
         for _ in range(rng.integers(3, 9)):
             y = yc + rng.normal(0, 70); h = rng.uniform(6, 60); x = rng.uniform(-200, W); w = rng.uniform(80, 1200)
             g.append(poly([(x, y), (x + w, y), (x + w, y + h), (x, y + h)], fill=COLS[rng.integers(4)], fo=rng.uniform(0.15, 0.7)))
     for _ in range(40):
-        x, y = rng.uniform(0, W), rng.uniform(0.25 * H, H); s = rng.uniform(10, 40)
+        x, y = rng.uniform(0, W), rng.uniform(0 if DESK else 0.25 * H, H); s = rng.uniform(10, 40)
         g.append(poly([(x, y), (x + s, y), (x + s, y + s), (x, y + s)], fill=COLS[rng.integers(4)], fo=0.8))
     add(base, svg(g), clear_zone(600, 900), ((10, 0.8),))
     fx_logo(base, 1320, fx=(("split", (0, 255, 240), (255, 0, 170), 26), ("slices", 3, 46)), shadow=0.3)
-    text(base, "SYSTEM://ALFA_8084", 110, round(0.775 * H), 50, (0, 255, 240), 0.95, mono=True, anchor="l")
-    text(base, "> BOOT OK_  ROBOT ONLINE", 110, round(0.775 * H) + 70, 42, (255, 0, 170), 0.9, mono=True, anchor="l")
+    ty = 150 if DESK else round(0.775 * H)
+    text(base, "SYSTEM://ALFA_8084", 110, ty, 50, (0, 255, 240), 0.95, mono=True, anchor="l")
+    text(base, "> BOOT OK_  ROBOT ONLINE", 110, ty + 70, 42, (255, 0, 170), 0.9, mono=True, anchor="l")
     footer(base, color=(255, 230, 0))
     return base
 
@@ -161,7 +162,9 @@ def d_aurora():
     a = mix((2, 6, 26), (4, 30, 60), YY / H)
     rays = np.asarray(Image.fromarray(rng.random((1, 260)).astype(np.float32), "F").resize((W, H), Image.BICUBIC))
     rays = 0.35 + 0.65 * rays
-    for k, (y0, A1, A2, L, ph) in enumerate(((0.36, 160, 70, 900, 0.3), (0.50, 220, 90, 1100, 2.1), (0.60, 140, 60, 700, 4.0))):
+    curt = (((0.38, 110, 50, 520, 0.3), (0.55, 150, 60, 620, 2.1), (0.66, 100, 40, 420, 4.0)) if DESK else
+            ((0.36, 160, 70, 900, 0.3), (0.50, 220, 90, 1100, 2.1), (0.60, 140, 60, 700, 4.0)))
+    for k, (y0, A1, A2, L, ph) in enumerate(curt):
         base_y = y0 * H + A1 * np.sin(XX / 700 + ph) + A2 * np.sin(XX / 260 + ph * 2)
         d = YY - base_y
         I = np.where(d < 0, np.exp(d / L), np.exp(-(d / 30) ** 2)) * rays * (0.9 - 0.15 * k)
@@ -170,8 +173,9 @@ def d_aurora():
     a *= (0.55 + 0.45 * clock_dim(0.6))[..., None] ** 0.5
     base = arr_img(a)
     base.alpha_composite(alpha_mul(stars(rng, 260, 0, 0.75 * H, 4, flare=0.03), clock_dim(0.7)))
-    for y0, amp, col, edge in ((0.76 * H, 520, (6, 16, 34), (60, 255, 150)), (0.84 * H, 380, (2, 8, 20), (0, 200, 255))):
-        R = ridge(rng, y0, amp, 15)
+    rd = ((0.80 * H, 300), (0.89 * H, 220)) if DESK else ((0.76 * H, 520), (0.84 * H, 380))
+    for (y0, amp), col, edge in zip(rd, ((6, 16, 34), (2, 8, 20)), ((60, 255, 150), (0, 200, 255))):
+        R = ridge(rng, y0, amp, 24 if DESK else 15)
         add(base, svg([poly(R + [(W + 100, H + 10), (-100, H + 10)], fill=col, fo=1), line(R, edge, 4, 0.5)]), glows=((8, 0.6),))
     fx_logo(base, 1320, fx=(("neon", (60, 255, 170), 16, 50, 0.8),))
     footer(base, color=(160, 255, 210))
@@ -190,9 +194,10 @@ def d_liquid():
         num += w_[..., None] * np.array(c, np.float32); den += w_
     base = arr_img(num / den[..., None])
     rng = np.random.default_rng(14); g = []
-    for cx_, cy_, r in ((350, 1500, 230), (1850, 3600, 300), (1750, 1350, 120), (300, 3900, 150), (1080, 4250, 90)):
+    for cx_, cy_, r in (((520, 430, 230), (3280, 1640, 300), (3450, 420, 120), (760, 1720, 150), (2620, 1960, 90)) if DESK else
+                        ((350, 1500, 230), (1850, 3600, 300), (1750, 1350, 120), (300, 3900, 150), (1080, 4250, 90))):
         g.append(circle(cx_, cy_, r, fill=WHITE, fo=0.14, stroke=WHITE, w=4, so=0.55))
-    for cx_, cy_, s_, an in ((1880, 2100, 260, 18), (260, 2950, 220, -14)):
+    for cx_, cy_, s_, an in (((3130, 980, 260, 18), (660, 1060, 220, -14)) if DESK else ((1880, 2100, 260, 18), (260, 2950, 220, -14))):
         g.append(poly(rot([(-s_, -s_ * 0.6), (s_, -s_ * 0.6), (s_, s_ * 0.6), (-s_, s_ * 0.6)], math.radians(an), (cx_, cy_)), fill=WHITE, fo=0.12, stroke=WHITE, w=4, so=0.5))
     add(base, svg(g), clock_dim(0.6))
     fx_logo(base, 1320, fx=(("glow", WHITE, 90, 0.45), ("holo", 0.55)), shadow=0.45)
@@ -214,12 +219,12 @@ def d_popart():
     dots = []
     for y in range(0, H + 60, 46):
         for x in range(0 if (y // 46) % 2 else 23, W + 46, 46):
-            r = 3 + 17 * min(1, max(0, (math.hypot(x - CX, y - CY) - 700) / 1900))
+            r = 3 + 17 * min(1, max(0, (math.hypot(x - CX, y - CY) - kk(700)) / 1900))
             if r > 3.5: dots.append(f'<circle cx="{x}" cy="{y}" r="{r:.1f}" fill="#e8172d" fill-opacity="0.85"/>')
     add(base, svg(dots), clock_dim(0.35))
     b = [poly(burst(CX + 20, CY + 30, 760, 980, 18, rng), fill=(0, 0, 0)), poly(burst(CX, CY, 740, 950, 18, np.random.default_rng(15)), fill=WHITE, stroke=(0, 0, 0), w=18),
          poly(burst(CX, CY, 600, 760, 14, rng, 0.2), fill=(0, 160, 255), stroke=(0, 0, 0), w=12)]
-    add(base, svg(b))
+    add(base, svg(kg(b)))
     fx_logo(base, 1180, fx=(("outline", (0, 0, 0), 18), ("hard", (0, 0, 0), 34, 34)), shadow=0)
     def comic(s, x, y, size, fill, angle):
         f = font(size, "Bold Condensed")
@@ -229,6 +234,11 @@ def d_popart():
         d.text((30 - bb[0], 30 - bb[1]), s, font=f, fill=fill, stroke_width=size // 9, stroke_fill=(0, 0, 0))
         im = im.rotate(angle, expand=True, resample=Image.BICUBIC)
         base.alpha_composite(im, (round(x - im.width / 2), round(y - im.height / 2)))
+    if DESK:
+        comic("GO 8084!", 3080, 1720, 260, (255, 230, 0), 6)
+        comic("ZAP!", 520, 420, 170, WHITE, 12)
+        comic("BOOM!", 640, 1700, 150, (0, 200, 255), -10)
+        return base
     comic("GO 8084!", CX, round(0.815 * H), 300, (255, 230, 0), 6)
     comic("ZAP!", 330, round(0.30 * H), 150, WHITE, 12)
     comic("BOOM!", 1800, round(0.715 * H), 130, (0, 200, 255), -10)
@@ -244,8 +254,8 @@ def d_galaxy():
     a = mix((6, 2, 22), (2, 2, 10), dist() / 2800)
     light(a, c1 * (0.6 + 0.6 * n3), (190, 50, 230)); light(a, c2 * (0.6 + 0.6 * n3), (40, 140, 255)); light(a, (c1 * c2) * 2.5, (255, 90, 170))
     base = arr_img(a)
-    base.alpha_composite(alpha_mul(stars(rng, 520, 0, H, 4.5, flare=0.04), clock_dim(0.7)))
-    pc = (1700, 1530)
+    base.alpha_composite(alpha_mul(stars(rng, 600 if DESK else 520, 0, H, 4.5, flare=0.04), clock_dim(0.7)))
+    pc = (3150, 560) if DESK else (1700, 1530)
     ring = [(pc[0] + 430 * math.cos(t_), pc[1] + 120 * math.sin(t_)) for t_ in np.linspace(0, 2 * math.pi, 181)]
     ringL = svg([line(rot([(x - pc[0], y - pc[1]) for x, y in ring], math.radians(-18), pc), (255, 200, 120), 22, 0.75, True)])
     sa = np.zeros((H, W, 4), np.uint8)
@@ -279,7 +289,7 @@ def d_electric():
     base = arr_img(a)
     segs = []
     for ang in np.linspace(0, 2 * math.pi, 9)[:-1] + 0.3:
-        p0 = (CX + 640 * math.cos(ang), CY + 700 * math.sin(ang))
+        p0 = (CX + kk(640) * math.cos(ang), CY + kk(700) * math.sin(ang))
         p1 = (CX + 2600 * math.cos(ang + rng.uniform(-0.2, 0.2)), CY + 2600 * math.sin(ang + rng.uniform(-0.2, 0.2)))
         bolt(p0, p1, 260, 8, rng, segs)
     wide = svg([line([p, q], (0, 230, 255), 16, 0.9) for p, q in segs])
@@ -287,8 +297,9 @@ def d_electric():
     m = clock_dim(0.5)
     add(base, wide, m, ((30, 1.4), (90, 1.0))); add(base, core, m, ((6, 1.0),))
     ring = svg([circle(CX, CY, 760, stroke=(140, 220, 255), w=10, so=0.9), circle(CX, CY, 820, stroke=(190, 120, 255), w=5, so=0.7)])
+    if DESK: ring = svg(kg([circle(CX, CY, 760, stroke=(140, 220, 255), w=10, so=0.9), circle(CX, CY, 820, stroke=(190, 120, 255), w=5, so=0.7)]))
     add(base, ring, glows=((25, 1.5),))
-    sp = [circle(rng.uniform(0, W), rng.uniform(0.25 * H, H), rng.uniform(3, 8), fill=(200, 250, 255)) for _ in range(90)]
+    sp = [circle(rng.uniform(0, W), rng.uniform(0 if DESK else 0.25 * H, H), rng.uniform(3, 8), fill=(200, 250, 255)) for _ in range(90)]
     add(base, svg(sp), clear_zone(800, 900), ((10, 1.5),))
     fx_logo(base, 1300, fx=(("neon", (0, 230, 255), 12, 45, 1.0), ("neon", (255, 255, 255), 4, 10, 0.8)))
     footer(base, color=(160, 240, 255))
@@ -301,7 +312,7 @@ def d_pixel():
     im = Image.new("RGB", (w, h)); px = im.load()
     sky = [(40, 16, 90), (70, 24, 120), (120, 40, 150), (190, 60, 150), (250, 100, 120), (255, 160, 90)]
     rng = np.random.default_rng(18)
-    hz = int(h * 0.70)
+    hz = int(h * (0.76 if DESK else 0.70))
     for y in range(h):
         for x in range(w):
             t = y / hz * (len(sky) - 1)
@@ -309,7 +320,7 @@ def d_pixel():
             c = sky[min(i + (1 if f > [0.2, 0.7, 0.45, 0.95][(x + 2 * y) % 4] else 0), len(sky) - 1)] if y < hz else ((40, 170, 70) if y < hz + 3 else ((150, 90, 50) if (x // 4 + y // 3) % 2 else (130, 76, 42)))
             px[x, y] = c
     d = ImageDraw.Draw(im)
-    for x0, y0, wd in ((6, 142, 26), (128, 158, 30), (40, 196, 22), (150, 222, 18)):
+    for x0, y0, wd in (((40, 34, 26), (250, 44, 30), (14, 80, 22), (282, 92, 18)) if DESK else ((6, 142, 26), (128, 158, 30), (40, 196, 22), (150, 222, 18))):
         for dx, dy, ww in ((0, 2, wd), (4, 0, wd - 8), (2, 4, wd - 4)):
             d.rectangle((x0 + dx, y0 + dy, x0 + dx + ww, y0 + dy + 3), fill=(255, 240, 250))
     for _ in range(40):
@@ -323,22 +334,24 @@ def d_pixel():
                 if ch == "X": d.point((x0 + i, y0 + j), fill=(30, 30, 40))
                 elif ch == "O": d.point((x0 + i, y0 + j), fill=(0, 230, 255))
                 elif ch in "B8": d.point((x0 + i, y0 + j), fill=body if ch == "B" else WHITE)
-    for x0, c in ((22, (30, 100, 230)), (80, (230, 50, 60)), (140, (30, 100, 230))): sprite(x0, hz - 8, c)
+    for x0, c in (((30, (30, 100, 230)), (90, (230, 50, 60)), (226, (30, 100, 230)), (282, (230, 50, 60))) if DESK else
+                  ((22, (30, 100, 230)), (80, (230, 50, 60)), (140, (30, 100, 230)))): sprite(x0, hz - 8, c)
     for x0 in range(40, w - 20, 22):
         d.rectangle((x0, hz - 22, x0 + 2, hz - 19), fill=(255, 210, 0)); d.point((x0 + 1, hz - 21), fill=(255, 250, 160))
     d.fontmode = "1"
     f = font(11, "Bold"); f2 = font(9, "Bold")
-    d.text((8, int(h * 0.275)), "1UP 8084", font=f, fill=WHITE)
-    d.text((w - 8, int(h * 0.275)), "HI 808400", font=f, fill=(255, 220, 0), anchor="ra")
+    ty = 5 if DESK else int(h * 0.275)
+    d.text((8, ty), "1UP 8084", font=f, fill=WHITE)
+    d.text((w - 8, ty), "HI 808400", font=f, fill=(255, 220, 0), anchor="ra")
     for i in range(3):
-        hx_ = 8 + i * 10; hy = int(h * 0.31)
+        hx_ = 8 + i * 10; hy = 19 if DESK else int(h * 0.31)
         for j, row in enumerate(["X.X.", "XXX.", ".X.."]):
             for k, ch in enumerate(row):
                 if ch == "X": d.rectangle((hx_ + k * 2, hy + j * 2, hx_ + k * 2 + 1, hy + j * 2 + 1), fill=(255, 50, 80))
-    d.text((w // 2, int(h * 0.815)), "PRESS START", font=f, fill=WHITE, anchor="mm")
-    d.text((w // 2, int(h * 0.845)), "FRC TEAM 8084", font=f2, fill=(255, 220, 0), anchor="mm")
+    d.text((w // 2, hz + 12 if DESK else int(h * 0.815)), "PRESS START", font=f, fill=WHITE, anchor="mm")
+    d.text((w // 2, hz + 24 if DESK else int(h * 0.845)), "FRC TEAM 8084", font=f2, fill=(255, 220, 0), anchor="mm")
     base = im.resize((W, H), Image.NEAREST).convert("RGBA")
-    fx_logo(base, 1320, fx=(("hard", (20, 10, 40), 36, 36), ("pixel", 12)), shadow=0)
+    fx_logo(base, 1320, cy=round(0.44 * H) if DESK else CY, fx=(("hard", (20, 10, 40), 36, 36), ("pixel", 12)), shadow=0)
     return base
 
 
@@ -362,14 +375,14 @@ def d_stadium():
         cf.append(poly(rot([(-s, -s * 0.4), (s, -s * 0.4), (s, s * 0.4), (-s, s * 0.4)], an, (x, y)), fill=COLS[rng.integers(len(COLS))], fo=rng.uniform(0.6, 1)))
     add(base, svg(cf), clear_zone(650, 900) * clock_dim(0.35))
     crowd = []
-    for row, (yb, rr, col) in enumerate(((0.905 * H, 70, (14, 10, 30)), (0.95 * H, 85, (6, 4, 16)))):
+    for row, (yb, rr, col) in enumerate((((0.92 if DESK else 0.905) * H, 70, (14, 10, 30)), ((0.97 if DESK else 0.95) * H, 85, (6, 4, 16)))):
         for x in np.arange(-40, W + 80, rr * 1.5):
             x += rng.uniform(-20, 20); hy = yb + rng.uniform(-20, 20)
             crowd.append(circle(x, hy - rr * 1.1, rr * 0.55, fill=col)); crowd.append(poly([(x - rr, hy), (x + rr, hy), (x + rr, H + 10), (x - rr, H + 10)], fill=col))
-    lights = [circle(rng.uniform(0, W), rng.uniform(0.88 * H, 0.96 * H), rng.uniform(5, 9), fill=(255, 250, 220)) for _ in range(40)]
+    lights = [circle(rng.uniform(0, W), rng.uniform((0.90 if DESK else 0.88) * H, 0.96 * H), rng.uniform(5, 9), fill=(255, 250, 220)) for _ in range(60 if DESK else 40)]
     base.alpha_composite(svg(crowd)); add(base, svg(lights), glows=((12, 1.5),))
     fx_logo(base, 1320, fx=(("glow", (255, 255, 255), 120, 0.5), ("neon", (255, 210, 0), 10, 40, 0.8)))
-    footer(base, "ALFA ROBOTICS  ·  8084", y=round(0.82 * H), color=(255, 230, 120))
+    footer(base, "ALFA ROBOTICS  ·  8084", y=CY + 660 if DESK else round(0.82 * H), color=(255, 230, 120))
     return base
 
 
@@ -379,7 +392,7 @@ def d_memphis():
     base = arr_img(mix((30, 50, 190), (60, 20, 160), YY / H))
     COLS = [(255, 214, 0), (255, 90, 150), (0, 220, 200), (255, 140, 40), WHITE]
     s = []
-    for _ in range(26):
+    for _ in range(32 if DESK else 26):
         x, y = rng.uniform(0, W), rng.uniform(0, H); c = COLS[rng.integers(len(COLS))]; k = rng.integers(5); sz = rng.uniform(70, 170)
         if k == 0: s.append(poly(rot([(0, -sz), (sz * 0.87, sz * 0.5), (-sz * 0.87, sz * 0.5)], rng.uniform(0, 6), (x, y)), fill=c))
         elif k == 1: s.append(circle(x, y, sz * 0.6, fill=c))
@@ -390,7 +403,7 @@ def d_memphis():
         else:
             q = [(x + i * 40, y + (35 if i % 2 else -35)) for i in range(9)]
             s.append(line(rot([(px_ - x, py - y) for px_, py in q], rng.uniform(0, 6), (x, y)), c, 14))
-    for gx, gy in ((140, 1500), (1700, 3300)):
+    for gx, gy in (((200, 260), (3330, 1560)) if DESK else ((140, 1500), (1700, 3300))):
         for i in range(6):
             for j in range(6): s.append(circle(gx + i * 50, gy + j * 50, 9, fill=WHITE, fo=0.8))
     add(base, svg(s), clear_zone(720, 760) * clock_dim(0.12))
@@ -408,6 +421,7 @@ if __name__ == "__main__":
     for i in pick:
         name, fn = DESIGNS2[i - 11]
         finish(fn(), name)
+    if DESK: sys.exit()
     files = [OUT + f"ALFA 8084 - Duvar Kagidi {n}.jpg" for n, _ in DESIGNS2]
     if all(os.path.exists(f) for f in files):
         preview(files, OUT + "../duvar_onizleme_2.jpg")

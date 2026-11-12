@@ -1,19 +1,23 @@
 # ALFA Robotics 8084 phone wallpapers: 2160 x 4680 px (19.5:9, fits iPhone and Android), 10 designs.
 # Vector art is written as SVG and rasterised with PyMuPDF; gradients, glows and text with numpy / PIL.
 # Usage: python duvar_kagidi.py [design numbers ...]   (no argument = all), then a preview sheet is made.
+# Windows desktop set (3840 x 2160): set ALFA_DESK=1 (same for duvar_kagidi2.py); output in 'Masaustu Duvar Kagitlari/'.
 import math, os, sys
 import numpy as np
 import pymupdf
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-W, H = 2160, 4680
+DESK = os.environ.get("ALFA_DESK") == "1"   # Windows desktop: 3840 x 2160 (4K UHD, 16:9)
+W, H = (3840, 2160) if DESK else (2160, 4680)
+K = 0.78 if DESK else 1.0                  # scale of the central composition (logo, rings) on the desktop
 NAVY, SKY, ICE, WHITE = (0, 58, 111), (99, 196, 242), (208, 233, 232), (255, 255, 255)
 ROOT = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/"
 EM = ROOT + "v10 surum ailesi/Amblem/Koyu zemin/ALFA 8084 - Amblem v10 - Koyu zemin.pdf"
-OUT = ROOT + "Duvar Kagitlari/"
+OUT = ROOT + ("Masaustu Duvar Kagitlari/" if DESK else "Duvar Kagitlari/")
+PREFIX = "ALFA 8084 - Masaustu " if DESK else "ALFA 8084 - Duvar Kagidi "
 BAHN, MONO = "C:/Windows/Fonts/bahnschrift.ttf", "C:/Windows/Fonts/consola.ttf"
-CX, CY = W / 2, round(0.535 * H)   # logo centre; the lock-screen clock sits in ~6-24 % of the height
-FOOT_Y = round(0.845 * H)          # above the lock-screen buttons and the home bar
+CX, CY = W / 2, round((0.48 if DESK else 0.535) * H)   # logo centre; phone: the lock-screen clock sits in ~6-24 % of the height
+FOOT_Y = H - 170 if DESK else round(0.845 * H)          # above the taskbar / the lock-screen buttons and the home bar
 YY, XX = np.mgrid[0:H, 0:W].astype(np.float32)
 
 
@@ -35,6 +39,10 @@ def circle(x, y, r, **k): return shape(circ_path(x, y, r), **k)
 def rot(p, a, c=(0, 0)):
     ca, sa = math.cos(a), math.sin(a)
     return [(c[0] + x * ca - y * sa, c[1] + x * sa + y * ca) for x, y in p]
+def kk(v): return v * K
+def kp(x, y): return (CX + (x - CX) * K, CY + (y - CY) * K)
+def kg(body, k=K, cx=CX, cy=CY):   # scale a group of SVG elements about the logo centre
+    return body if k == 1 else [f'<g transform="translate({cx} {cy}) scale({k}) translate({-cx} {-cy})">'] + body + ["</g>"]
 def svg(body):
     s = f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}">{"".join(body)}</svg>'
     p = pymupdf.open(stream=s.encode(), filetype="svg")[0].get_pixmap(alpha=True)
@@ -52,8 +60,9 @@ def alpha_mul(layer, m):
     a = np.asarray(layer).copy()
     a[..., 3] = (a[..., 3] * np.clip(m, 0, 1)).astype(np.uint8)
     return Image.fromarray(a, "RGBA")
-def clear_zone(r0, r1, cx=CX, cy=CY): return np.clip((dist(cx, cy) - r0) / (r1 - r0), 0, 1)
+def clear_zone(r0, r1, cx=CX, cy=CY): return np.clip((dist(cx, cy) - kk(r0)) / (kk(r1) - kk(r0)), 0, 1)
 def clock_dim(k=0.45):  # quieter art behind the lock-screen clock
+    if DESK: return np.ones_like(YY)
     t = np.clip(1 - np.abs(YY / H - 0.145) / 0.13, 0, 1)
     return 1 - (1 - k) * np.clip(t * 1.6, 0, 1)
 def scale_alpha(im, k):
@@ -75,8 +84,8 @@ def logo(width):
     return im.resize((width, round(im.height * width / im.width)), Image.LANCZOS)
 
 
-def place_logo(base, width=1320, cy=CY, cx=CX, glow_c=SKY, glow_k=0.55, shadow_k=0.6, mass=False):
-    L = logo(width)
+def place_logo(base, width=1320, cy=CY, cx=CX, glow_c=SKY, glow_k=0.55, shadow_k=0.6, mass=False, k=K):
+    L = logo(round(width * k))
     A = L.getchannel("A")
     if mass:   # centre the visual weight (alpha centroid), not the bounding box
         a = np.asarray(A, np.float32); ys, xs = np.mgrid[0:L.height, 0:L.width]
@@ -132,7 +141,7 @@ def finish(base, name):
     a = np.asarray(base.convert("RGB")).astype(np.float32)
     a += np.random.default_rng(7).normal(0, 1.4, (H, W, 1)).astype(np.float32)   # grain: no banding in gradients
     os.makedirs(OUT, exist_ok=True)
-    f = OUT + f"ALFA 8084 - Duvar Kagidi {name}.jpg"
+    f = OUT + f"{PREFIX}{name}.jpg"
     Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)).save(f, quality=95, subsampling=0)
     print(f)
     return f
@@ -142,10 +151,10 @@ def finish(base, name):
 def d_blueprint():
     base = arr_img(mix((12, 66, 124), (3, 30, 66), YY / H) + 26 * np.clip(1 - dist() / 1900, 0, 1)[..., None])
     b = []
-    for k in range(-21, 22):
+    for k in range(-80, 81):
         x = CX + 54 * k
         if 0 <= x <= W: b.append(line([(x, 0), (x, H)], ICE, 3 if k % 5 == 0 else 1.5, 0.16 if k % 5 == 0 else 0.07))
-    for k in range(-50, 45):
+    for k in range(-80, 81):
         y = CY + 54 * k
         if 0 <= y <= H: b.append(line([(0, y), (W, y)], ICE, 3 if k % 5 == 0 else 1.5, 0.16 if k % 5 == 0 else 0.07))
     add(base, svg(b), clock_dim(0.6))
@@ -183,21 +192,25 @@ def d_blueprint():
     for (ax, ay), (bx, by), _ in balloons:
         d.append(line([(ax, ay), (bx, by - 42)], ICE, 2, 0.6)); d.append(circle(ax, ay, 8, fill=ICE, fo=0.8))
         d.append(circle(bx, by, 42, stroke=ICE, w=3, so=0.8))
-    tb = (x0, y1 + 320, x1, y1 + 640)   # title block
+    d = kg(d)
+    # title block: under the drawing (phone), bottom-right corner of the sheet (desktop)
+    tb = (W - 1100, H - 150 - 320, W - 120, H - 150) if DESK else (x0, y1 + 320, x1, y1 + 640)
+    dv = tb[0] + 730 if DESK else CX + 300
+    t1, t2 = (46, 30) if DESK else (60, 38)
     rect(*tb, 4, 0.75)
     d.append(line([(tb[0], tb[1] + 130), (tb[2], tb[1] + 130)], ICE, 3, 0.6))
     d.append(line([(tb[0], tb[1] + 230), (tb[2], tb[1] + 230)], ICE, 2, 0.5))
-    d.append(line([(CX + 300, tb[1] + 130), (CX + 300, tb[3])], ICE, 2, 0.5))
+    d.append(line([(dv, tb[1] + 130), (dv, tb[3])], ICE, 2, 0.5))
     add(base, svg(d), glows=((10, 0.5),))
     place_logo(base, 1320, glow_c=WHITE, glow_k=0.3)
-    text(base, "27.0 in  ·  686 mm", CX, yd - 52, 46, ICE, 0.85, mono=True)
-    text(base, "27.0 in  ·  686 mm", xd - 52, CY, 46, ICE, 0.85, mono=True, angle=90)
-    for _, (bx, by), n in balloons: text(base, n, bx, by, 44, ICE, 0.95, mono=True)
-    text(base, "ALFA ROBOTICS  ·  FRC TEAM 8084", tb[0] + 50, tb[1] + 68, 60, ICE, 0.95, "SemiBold", 0.12, "l")
-    text(base, "1  SWERVE MODÜLÜ ×4      2  ŞASİ 27×27", tb[0] + 50, tb[1] + 182, 38, ICE, 0.8, mono=True, anchor="l")
-    text(base, "ÇİZEN: 8084", CX + 340, tb[1] + 182, 38, ICE, 0.8, mono=True, anchor="l")
-    text(base, "ÖLÇEK 1:5   ·   REV v10", tb[0] + 50, tb[1] + 276, 38, ICE, 0.8, mono=True, anchor="l")
-    text(base, "SAYFA 1/1", CX + 340, tb[1] + 276, 38, ICE, 0.8, mono=True, anchor="l")
+    text(base, "27.0 in  ·  686 mm", *kp(CX, yd - 52), round(kk(46)), ICE, 0.85, mono=True)
+    text(base, "27.0 in  ·  686 mm", *kp(xd - 52, CY), round(kk(46)), ICE, 0.85, mono=True, angle=90)
+    for _, (bx, by), n in balloons: text(base, n, *kp(bx, by), round(kk(44)), ICE, 0.95, mono=True)
+    text(base, "ALFA ROBOTICS  ·  FRC TEAM 8084", tb[0] + 50, tb[1] + 68, t1, ICE, 0.95, "SemiBold", 0.12, "l")
+    text(base, "1  SWERVE MODÜLÜ ×4   2  ŞASİ 27×27" if DESK else "1  SWERVE MODÜLÜ ×4      2  ŞASİ 27×27", tb[0] + 50, tb[1] + 182, t2, ICE, 0.8, mono=True, anchor="l")
+    text(base, "ÇİZEN: 8084", dv + 40, tb[1] + 182, t2, ICE, 0.8, mono=True, anchor="l")
+    text(base, "ÖLÇEK 1:5   ·   REV v10", tb[0] + 50, tb[1] + 276, t2, ICE, 0.8, mono=True, anchor="l")
+    text(base, "SAYFA 1/1", dv + 40, tb[1] + 276, t2, ICE, 0.8, mono=True, anchor="l")
     return base
 
 
@@ -224,11 +237,11 @@ def d_circuit():
             cut = rng.uniform(0, 160); last = np.array(q[-1]) - d0 * cut; q[-1] = tuple(last)
             d.append(line(q, SKY, 6, o)); ends.append((q, o))
     for side in (1, -1):
-        for y in np.arange(330, 4500, 400):
+        for y in (np.arange(140, H, 300) if DESK else np.arange(330, 4500, 400)):
             n = int(rng.integers(3, 7)); sgn = 1 if y < CY else -1
             x0 = -20 if side == 1 else W + 20
             bundle((x0, y), (side, 0), (side, sgn), (rng.uniform(80, 520), rng.uniform(140, 300), rng.uniform(150, 600)), n, rng.uniform(0.35, 0.85))
-    for x, sg in ((420, 1), (1740, -1)):
+    for x, sg in (((420, 1), (1300, 1), (2540, -1), (3420, -1)) if DESK else ((420, 1), (1740, -1))):
         bundle((x, H + 20), (0, -1), (sg, -1), (rng.uniform(150, 300), 260, 400), 5, 0.7)
         bundle((x, -20), (0, 1), (sg, 1), (rng.uniform(100, 200), 200, 300), 4, 0.45)
     for q, o in ends:
@@ -281,6 +294,11 @@ def d_gears():
         for j in range(6):
             a = ph + math.pi / 6 + j * math.pi / 3
             d.append(circle(x + 0.3 * R * math.cos(a), y + 0.3 * R * math.sin(a), 12, fill=ICE, fo=0.35))
+    d = kg(d)
+    if DESK:   # two extra gears fill the wide sides
+        for x, y, R, ph in ((430, 1720, 520, 0.1), (3450, 380, 460, 0.4)):
+            d.append(shape(gear_path(x, y, R, round(2 * math.pi * R / pitch), 70, ph, 5), fill=SKY, fo=0.08, stroke=SKY, w=5, so=0.4, rule="evenodd"))
+            d.append(circle(x, y, R - 120, stroke=ICE, w=3, so=0.15))
     add(base, svg(d), clock_dim(0.55), ((18, 0.7),))
     place_logo(base, 1320, glow_k=0.6)
     footer(base)
@@ -292,7 +310,8 @@ def d_hexhud():
     rng = np.random.default_rng(4)
     base = arr_img(mix((0, 44, 86), (0, 8, 22), dist() / 2600))
     s = 78; w = math.sqrt(3) * s
-    seeds = [(rng.uniform(0, W), rng.uniform(1300, H)) for _ in range(6)] + [(150, 4400), (2000, 1500)]
+    seeds = ([(rng.uniform(0, W), rng.uniform(0, H)) for _ in range(7)] + [(300, H - 200), (W - 300, 300)] if DESK else
+             [(rng.uniform(0, W), rng.uniform(1300, H)) for _ in range(6)] + [(150, 4400), (2000, 1500)])
     d = []
     for row in range(int(H / (1.5 * s)) + 2):
         for col in range(int(W / w) + 2):
@@ -321,12 +340,13 @@ def d_hexhud():
         for sy in (-1, 1):
             x, y = CX + sx * 1010, CY + sy * 1060
             h.append(line([(x - sx * 110, y), (x, y), (x, y - sy * 110)], SKY, 6, 0.65))
-    add(base, svg(h), glows=((10, 0.8),))
+    add(base, svg(kg(h)), glows=((10, 0.8),))
     place_logo(base, 1260, glow_k=0.65)
+    ty = H - 420 if DESK else CY + 1150
     for i, s_ in enumerate(("SYS  ONLINE", "MOD  TELEOP", "CAN  100%")):
-        text(base, s_, 90, CY + 1150 + 62 * i, 42, SKY if i == 0 else ICE, 0.85, mono=True, anchor="l")
+        text(base, s_, 90, ty + 62 * i, 42, SKY if i == 0 else ICE, 0.85, mono=True, anchor="l")
     for i, s_ in enumerate(("BAT 12.8 V", "LAT  18 ms", "TEAM  8084")):
-        text(base, s_, W - 90, CY + 1150 + 62 * i, 42, ICE, 0.85, mono=True, anchor="r")
+        text(base, s_, W - 90, ty + 62 * i, 42, ICE, 0.85, mono=True, anchor="r")
     footer(base)
     return base
 
@@ -335,17 +355,19 @@ def d_hexhud():
 def d_vision():
     rng = np.random.default_rng(5)
     base = arr_img(mix((0, 40, 78), (0, 8, 20), dist(CX, 0.45 * H) / 2700))
-    vy = 0.40 * H; f = []
+    vy = (0.50 if DESK else 0.40) * H; f = []; fz = 1.03 * (H - vy) if DESK else 2900
     for x in np.arange(-4000, W + 4001, 330): f.append(line([(CX, vy), (x, H + 600)], ICE, 3, 0.16))
     z = 1.0
     while True:
-        y = vy + 2900 / z
+        y = vy + fz / z
         if y > H: z += 0.4; continue
         if y - vy < 40: break
         f.append(line([(0, y), (W, y)], ICE, 3, 0.16)); z += 0.45
-    add(base, svg(f), np.clip((YY - vy) / 1400, 0, 1) * clear_zone(500, 900))
+    add(base, svg(f), np.clip((YY - vy) / (500 if DESK else 1400), 0, 1) * clear_zone(500, 900))
     o = []
-    for tx, ty, size, ang, tid in ((330, 1520, 330, -9, 4), (1830, 1440, 280, 7, 7), (310, 3560, 420, 12, 12), (1850, 3470, 460, -10, 15)):
+    tags = (((560, 520, 300, -9, 4), (3300, 480, 260, 7, 7), (600, 1480, 380, 12, 12), (3260, 1500, 400, -10, 15)) if DESK else
+            ((330, 1520, 330, -9, 4), (1830, 1440, 280, 7, 7), (310, 3560, 420, 12, 12), (1850, 3470, 460, -10, 15)))
+    for tx, ty, size, ang, tid in tags:
         g = np.ones((10, 10)); g[1:9, 1:9] = 0; g[2:8, 2:8] = rng.random((6, 6)) > 0.5
         rgb_ = np.where(g[..., None] > 0, np.array((226, 236, 240)), np.array((8, 14, 22))).astype(np.uint8)
         im = Image.fromarray(rgb_, "RGB").resize((size, size), Image.NEAREST).convert("RGBA")
@@ -367,14 +389,14 @@ def d_vision():
     for (cx_, cy_, sx, sy) in ((x0, y0, 1, 1), (x1, y0, -1, 1), (x0, y1, 1, -1), (x1, y1, -1, -1)):
         k.append(line([(cx_, cy_ + sy * 120), (cx_, cy_), (cx_ + sx * 120, cy_)], SKY, 9, 0.95))
     k.append(poly([(x0, y0 - 80), (x0 + 560, y0 - 80), (x0 + 560, y0 - 10), (x0, y0 - 10)], fill=SKY, fo=0.9))
-    for sx, sy in ((70, 1290), (W - 70, 1290), (70, 4180), (W - 70, 4180)):
+    for sx, sy in (((70, 90), (W - 70, 90), (70, H - 120), (W - 70, H - 120)) if DESK else ((70, 1290), (W - 70, 1290), (70, 4180), (W - 70, 4180))):
         dx, dy = (1 if sx < CX else -1), (1 if sy < CY else -1)
         k.append(line([(sx, sy + dy * 130), (sx, sy), (sx + dx * 130, sy)], ICE, 6, 0.5))
     add(base, svg(k), glows=((8, 0.6),))
     text(base, "ALFA 8084  ·  %99,8", x0 + 22, y0 - 45, 44, (0, 22, 46), 1, mono=True, anchor="l")
     for e in o:
         if not isinstance(e, str): text(base, e[1], e[2], e[3], 38, SKY, 0.95, mono=True, anchor="l")
-    text(base, "CAM 0  ·  1280×800  ·  90 FPS  ·  12 ms", CX, round(0.805 * H), 40, ICE, 0.7, mono=True)
+    text(base, "CAM 0  ·  1280×800  ·  90 FPS  ·  12 ms", CX, H - 270 if DESK else round(0.805 * H), 40, ICE, 0.7, mono=True)
     footer(base)
     return base
 
@@ -402,7 +424,7 @@ def d_swerve():
         tip = (mx + u[0] * 260, my + u[1] * 260)
         m.append(line([(mx + u[0] * 140, my + u[1] * 140), tip], SKY, 9, 0.95))
         m.append(poly(rot([(0, 0), (-50, -26), (-50, 26)], a, tip), fill=SKY))
-    add(base, svg(m), glows=((14, 0.8),))
+    add(base, svg(kg(m)), glows=((14, 0.8),))
     place_logo(base, 1300, glow_k=0.65)
     footer(base)
     return base
@@ -419,8 +441,12 @@ def robot_top(cx, cy, ang, color, d):
 
 
 def d_field():
+    global CX, CY, W
     rng = np.random.default_rng(7)
-    a = mix((30, 40, 54), (14, 20, 30), dist() / 2800) + rng.normal(0, 5, (H, W, 1)).astype(np.float32)
+    dCX, dCY, dW = CX, CY, W
+    if DESK: CX, CY, W = 1080, 2504, 2160          # build in phone field coordinates
+    FS = 0.86                                         # desktop: field scale after the turn
+    a = mix((30, 40, 54), (14, 20, 30), dist() / 2800) + rng.normal(0, 5, (H, dW, 1)).astype(np.float32)
     a += (np.sin(YY / 3.0) * 2.5)[..., None]
     base = arr_img(a)
     x0, x1, y0, y1, ch = 70, W - 70, CY - 2190, CY + 2140, 170
@@ -443,6 +469,14 @@ def d_field():
         d.append(poly([(tx - 32, ty - 32), (tx + 32, ty - 32), (tx + 32, ty + 32), (tx - 32, ty + 32)], fill=(230, 236, 240), stroke=(0, 0, 0), w=6))
     robots = [(400, 1420, 15, RED), (1760, 1380, -20, RED), (1080, 1300, 5, RED), (460, 3700, 10, BLUE), (1680, 3820, -15, BLUE), (1560, 3330, 25, BLUE)]
     for x, y, an, c in robots: robot_top(x, y, an, c, d)
+    if DESK:
+        d = [f'<g transform="translate({dCX} {H / 2}) rotate(-90) scale({FS}) translate({-CX} {-CY})">'] + d + ["</g>"]
+        rx, ry = dCX + (3700 - CY) * FS, H / 2 - (460 - CX) * FS   # the 8084 robot after the turn
+        CX, CY, W = dCX, dCY, dW
+        add(base, svg(d), glows=((10, 0.4),))
+        place_logo(base, round(1060 * FS), cy=H / 2, glow_k=0.45, k=1)
+        text(base, "8084", rx, ry - 150, 46, ICE, 0.95, mono=True)
+        return base
     add(base, svg(d), glows=((10, 0.4),))
     place_logo(base, 1060, glow_k=0.45)
     text(base, "8084", 460, 3700 - 150, 46, ICE, 0.95, mono=True)
@@ -452,16 +486,16 @@ def d_field():
 
 # ---------- 8. 8084 robot on the field (isometric) ----------
 def d_robot():
-    s = 26; T = (CX, 0.648 * H)
+    s, T = (19, (0.69 * W, 0.66 * H)) if DESK else (26, (CX, 0.648 * H))
     o = (T[0], T[1] - 27 * 0.5 * s + 18 * s)
     def P(x, y, z): return (o[0] + (x - y) * 0.866 * s, o[1] + (x + y) * 0.5 * s - z * s)
-    base = arr_img(mix((0, 48, 96), (0, 8, 20), dist(CX, 0.62 * H) / 2400))
+    base = arr_img(mix((0, 48, 96), (0, 8, 20), dist(T[0], 0.62 * H) / 2400))
     g = []
     for k in range(-150, 181, 12):
         g.append(line([P(k, -150, 0), P(k, 180, 0)], ICE, 2, 0.1)); g.append(line([P(-150, k, 0), P(180, k, 0)], ICE, 2, 0.1))
     g.append(poly([P(-150, 50, 0), P(180, 50, 0), P(180, 52, 0), P(-150, 52, 0)], fill=WHITE, fo=0.4))
     g.append(poly([P(-38, -150, 0), P(-36, -150, 0), P(-36, 180, 0), P(-38, 180, 0)], fill=WHITE, fo=0.3))
-    add(base, svg(g), np.clip(1 - dist(*T) / 1700, 0, 1) * np.clip((YY - 0.42 * H) / 500, 0, 1))
+    add(base, svg(g), np.clip(1 - dist(*T) / 1700, 0, 1) * np.clip((YY - (0.40 if DESK else 0.42) * H) / 500, 0, 1))
     sh = svg([poly([P(-6, -6, 0), P(36, -6, 0), P(36, 36, 0), P(-6, 36, 0)], fill=(0, 0, 0), fo=0.65)])
     base.alpha_composite(sh.filter(ImageFilter.GaussianBlur(40)))
     def shade(c, k): return tuple(min(255, int(v * k)) for v in c)
@@ -504,6 +538,10 @@ def d_robot():
     hw = 7.5
     face_text(P(30.5, 13.5 + hw, zt), P(30.5, 13.5 - hw, zt), P(30.5, 13.5 + hw, zb), "8084")
     face_text(P(13.5 - hw, 30.5, zt), P(13.5 + hw, 30.5, zt), P(13.5 - hw, 30.5, zb), "8084")
+    if DESK:
+        bb = place_logo(base, 1000, cx=0.29 * W, cy=CY, glow_k=0.6, k=1)
+        text(base, "FRC TEAM 8084", 0.29 * W, bb[3] + 130, 50, ICE, 0.85, "SemiBold", 0.42)
+        return base
     place_logo(base, 820, cy=round(0.335 * H), glow_k=0.6)
     text(base, "FRC TEAM 8084", CX, round(0.885 * H) - 30, 50, ICE, 0.85, "SemiBold", 0.42)
     return base
@@ -551,16 +589,16 @@ def d_canopy():
                    for a in np.linspace(0, 2 * math.pi, 361)], ICE, 4, 0.35, True))
     c.append(line([(CX + (790 + 25 * math.sin(7 * a + 1)) * math.cos(a), CY + (790 + 25 * math.sin(7 * a + 1)) * math.sin(a))
                    for a in np.linspace(0, 2 * math.pi, 361)], SKY, 3, 0.3, True))
-    add(base, svg(c), glows=((14, 0.9),))
+    add(base, svg(kg(c)), glows=((14, 0.9),))
     fl = []
     for _ in range(80):
-        x, y = rng.uniform(0, W), rng.uniform(0.25 * H, 0.95 * H)
-        if math.hypot(x - CX, y - CY) < 1000: continue
+        x, y = rng.uniform(0, W), rng.uniform((0.04 if DESK else 0.25) * H, 0.95 * H)
+        if math.hypot(x - CX, y - CY) < kk(1000): continue
         fl.append(circle(x, y, rng.uniform(4, 10), fill=(205, 255, 170) if rng.random() < 0.5 else ICE, fo=rng.uniform(0.6, 1)))
     add(base, svg(fl), glows=((16, 1.6), (40, 0.8)))
     place_logo(base, 1260, glow_k=0.6)
-    text(base, "2027  ·  BIOCORE", CX, round(0.795 * H), 52, (205, 255, 170), 0.9, "SemiBold", 0.35)
-    footer(base, y=FOOT_Y + 20)
+    text(base, "2027  ·  BIOCORE", CX, CY + 820 if DESK else round(0.795 * H), 52, (205, 255, 170), 0.9, "SemiBold", 0.35)
+    footer(base, y=FOOT_Y + (0 if DESK else 20))
     return base
 
 
@@ -569,17 +607,19 @@ def d_night():
     rng = np.random.default_rng(10)
     t = YY / H
     base = arr_img(mix((2, 18, 44), (0, 50, 96), np.clip(t / 0.75, 0, 1)))
-    mc = (CX, 0.43 * H)
-    moon = np.clip(1 - dist(*mc) / 1500, 0, 1) ** 2
-    m = svg([circle(*mc, 560, fill=(228, 240, 240), fo=1)])
+    mc = (CX, CY - 120) if DESK else (CX, 0.43 * H)
+    moon = np.clip(1 - dist(*mc) / kk(1500), 0, 1) ** 2
+    m = svg([circle(*mc, kk(560), fill=(228, 240, 240), fo=1)])
     a_ = np.asarray(base).astype(np.float32); a_[..., :3] += (moon * 70)[..., None] * np.array((0.6, 0.85, 1.0)); base = Image.fromarray(np.clip(a_, 0, 255).astype(np.uint8), "RGBA")
     glow(base, m, 90, 0.8); base.alpha_composite(m)
-    cr = [circle(mc[0] + rng.uniform(-380, 380), mc[1] + rng.uniform(-380, 380), rng.uniform(25, 90), fill=(180, 200, 210), fo=0.25) for _ in range(9)]
-    base.alpha_composite(alpha_mul(svg(cr), (dist(*mc) < 540).astype(np.float32)))
+    cr = [circle(mc[0] + kk(rng.uniform(-380, 380)), mc[1] + kk(rng.uniform(-380, 380)), kk(rng.uniform(25, 90)), fill=(180, 200, 210), fo=0.25) for _ in range(9)]
+    base.alpha_composite(alpha_mul(svg(cr), (dist(*mc) < kk(540)).astype(np.float32)))
     pts_ = []
     while len(pts_) < 130:
         x, y = rng.uniform(0, W), rng.uniform(0.02 * H, 0.66 * H)
-        if math.hypot(x - mc[0], y - mc[1]) > 680 and not (0.06 * H < y < 0.24 * H and rng.random() < 0.6): pts_.append((x, y))
+        if DESK:
+            if math.hypot(x - mc[0], y - mc[1]) > kk(680): pts_.append((x, y))
+        elif math.hypot(x - mc[0], y - mc[1]) > 680 and not (0.06 * H < y < 0.24 * H and rng.random() < 0.6): pts_.append((x, y))
     P = np.array(pts_); s = []
     for i, p in enumerate(P):
         dd = np.hypot(*(P - p).T); nb = np.argsort(dd)[1:3]
@@ -588,11 +628,12 @@ def d_night():
     for p in P:
         s.append(circle(*p, rng.uniform(3, 8), fill=SKY if rng.random() < 0.3 else ICE, fo=rng.uniform(0.6, 1)))
     add(base, svg(s), clock_dim(0.6), ((10, 1.0),))
-    for (y0, amp, cols, seed) in ((0.66 * H, 420, ((0, 44, 84), (0, 36, 72), (0, 52, 96)), 1), (0.74 * H, 300, ((0, 24, 52), (0, 18, 42), (0, 30, 60)), 2)):
+    mts = (((0.70 * H, 320, 1), (0.80 * H, 230, 2)) if DESK else ((0.66 * H, 420, 1), (0.74 * H, 300, 2)))
+    for (y0, amp, seed), cols in zip(mts, (((0, 44, 84), (0, 36, 72), (0, 52, 96)), ((0, 24, 52), (0, 18, 42), (0, 30, 60)))):
         r2 = np.random.default_rng(seed)
-        xs = np.linspace(-100, W + 100, 14)
+        xs = np.linspace(-100, W + 100, 24 if DESK else 14)
         ridge = [(x, y0 - amp * abs(math.sin(x / 520 + seed)) * r2.uniform(0.5, 1.1)) for x in xs]
-        low = [(x + r2.uniform(-60, 60), y + r2.uniform(300, 600)) for x, y in ridge]
+        low = [(x + r2.uniform(-60, 60), y + r2.uniform(300, 600) * (0.6 if DESK else 1)) for x, y in ridge]
         d = []
         for i in range(len(xs) - 1):
             for tri in ((ridge[i], ridge[i + 1], low[i]), (ridge[i + 1], low[i + 1], low[i])):
@@ -621,6 +662,19 @@ def preview(files, out):
         x, y = 30 + (i % 5) * (tw + 30), 30 + (i // 5) * (th + 70)
         sheet.paste(im.convert("RGB"), (x, y))
         ImageDraw.Draw(sheet).text((x + tw / 2, y + th + 32), os.path.basename(f)[25:-4], font=font(30, "SemiBold"), fill=(230, 236, 240), anchor="mm")
+    sheet.save(out, quality=92)
+    print(out)
+
+
+def preview_desk(files, out, cols=4):
+    tw, th = 640, 360
+    rows = (len(files) + cols - 1) // cols
+    sheet = Image.new("RGB", (cols * tw + (cols + 1) * 24, rows * (th + 60) + 24), (24, 28, 34))
+    for i, f in enumerate(files):
+        im = Image.open(f).convert("RGB").resize((tw, th), Image.LANCZOS)
+        x, y = 24 + (i % cols) * (tw + 24), 24 + (i // cols) * (th + 60)
+        sheet.paste(im, (x, y))
+        ImageDraw.Draw(sheet).text((x + tw / 2, y + th + 24), os.path.basename(f)[len(PREFIX):-4], font=font(26, "SemiBold"), fill=(230, 236, 240), anchor="mm")
     sheet.save(out, quality=92)
     print(out)
 
