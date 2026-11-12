@@ -6,7 +6,7 @@ from urllib.parse import quote
 import pymupdf
 from PIL import Image, ImageDraw, ImageFont
 
-TAG = sys.argv[1] if len(sys.argv) > 1 else "v10.1"
+TAG = sys.argv[1] if len(sys.argv) > 1 else "v10.2"
 REPO = "https://github.com/ozgurum35/Alfa-Robotics-8084-Logo"
 REL = "Yeniden Olusturulan/v10 surum ailesi/"
 ROOT = "D:/CLAUDE/Alfa Logo/" + REL
@@ -16,7 +16,7 @@ os.makedirs(IMG, exist_ok=True)
 for f in ("segoeui.ttf", "segoeuib.ttf"):
     shutil.copy("C:/Windows/Fonts/" + f, IMG + f)
 NAVY, SKY, ICE, WHITE = (0, 58, 111), (99, 196, 242), (208, 233, 232), (255, 255, 255)
-EM, WM = "Amblem", "Yazi Logo"
+EM, WM, YT = "Amblem", "Yazi Logo", "Yatay Logo"
 
 
 def fname(folder, variant, suffix):
@@ -67,14 +67,23 @@ VARIANTS = [  # folder, variant, background, title, where
      ["ROBOTICS harfleri boş (zemin görünür)", "Tek renk baskı, açık zemin", "Lazer kazıma, damga"]),
     (WM, "Tek renk beyaz", NAVY, "Yazı Logo – Tek renk beyaz",
      ["Koyu zemin: lacivert, siyah, koyu fotoğraf", "Koyu forma, beyaz serigrafi"]),
+    (YT, "Renkli", WHITE, "Yatay Logo – Renkli",
+     ["Amblem ve yazı yan yana", "Web sitesi başlığı, e-posta imzası", "Antetli kâğıt, sunum, afiş başlığı"]),
+    (YT, "Koyu zemin", NAVY, "Yatay Logo – Koyu zemin",
+     ["Beyaz kenarlı amblem + beyaz yazı", "Koyu web teması, banner, pankart", "Sosyal medya kapak görseli, koyu forma"]),
+    (YT, "Tek renk lacivert", WHITE, "Yatay Logo – Tek renk lacivert",
+     ["Tek renk baskı, açık zemin", "Lazer kazıma, damga, belge"]),
+    (YT, "Tek renk beyaz", NAVY, "Yatay Logo – Tek renk beyaz",
+     ["Koyu zeminde tek renk", "Beyaz serigrafi, folyo kesim, nakış"]),
 ]
 cards = []
 for i, (f, v, bg, title, where) in enumerate(VARIANTS):
     cards.append((card(ROOT + fname(f, v, " 1024px.png"), bg, f"v{i}.png", border=bg == WHITE), title, where,
                   links(f, v) + " · " + links(f, v, ("png4",)), tree(f"{f}/{v}")))
+yatay_cards = cards[7:]; cards = cards[:7]
 prof = " · ".join(f'<a href="{url("Profil/ALFA 8084 - Profil " + c + " " + s + "px.png")}">{c.capitalize()} {s}</a>'
                   for c in ("beyaz", "lacivert") for s in ("400", "1080"))
-cards.append((card(ROOT + "Profil/ALFA 8084 - Profil beyaz 1080px.png", (236, 240, 244), "v7.png"), "Profil fotoğrafı",
+cards.append((card(ROOT + "Profil/ALFA 8084 - Profil beyaz 1080px.png", (236, 240, 244), "p7.png"), "Profil fotoğrafı",
               ["Instagram, X, LinkedIn, YouTube, WhatsApp", "Kare; yuvarlak kırpmaya hazır", "Beyaz ve lacivert zeminli"], prof, tree("Profil")))
 card(ROOT + fname(EM, "Koyu zemin", " 512px.png"), NAVY, "logo_head.png", size=(200, 200))
 
@@ -163,21 +172,24 @@ NEED = [
     ("Tek renk serigrafi, damga (+ Pantone 654 C)", "Tek renk lacivert / beyaz", lk(EM, "Tek renk lacivert", "cmyk") + " · " + lk(EM, "Tek renk beyaz", "cmyk")),
     ("Nakış (forma, şapka, çanta)", "Tek renk lacivert / beyaz", lk(EM, "Tek renk lacivert", "ai") + " · " + lk(EM, "Tek renk beyaz", "ai")),
     ("Lazer kesim / kazıma, folyo kesim, CNC", "Tek renk lacivert", lk(EM, "Tek renk lacivert", "svg")),
-    ("Web sitesi (açık / koyu tema)", "Renkli / Koyu zemin", lk(EM, "Renkli", "svg") + " · " + lk(EM, "Koyu zemin", "svg")),
+    ("Web sitesi başlığı (açık / koyu tema)", "Yatay Renkli / Koyu zemin", lk(YT, "Renkli", "svg") + " · " + lk(YT, "Koyu zemin", "svg")),
+    ("Banner, pankart, sosyal medya kapak görseli", "Yatay Renkli / Koyu zemin", lk(YT, "Renkli", "png4") + " · " + lk(YT, "Koyu zemin", "png4")),
     ("Sunum, Word, Canva (açık / koyu slayt)", "Renkli / Koyu zemin", lk(EM, "Renkli", "png") + " · " + lk(EM, "Koyu zemin", "png")),
     ("Sosyal medya profil fotoğrafı", "Profil", f'<a href="{url("Profil/ALFA 8084 - Profil beyaz 1080px.png")}">Beyaz 1080</a> · <a href="{url("Profil/ALFA 8084 - Profil lacivert 1080px.png")}">Lacivert 1080</a>'),
     ("Sosyal medya gönderisi, video", "Renkli / Koyu zemin", lk(EM, "Renkli", "png2") + " · " + lk(EM, "Koyu zemin", "png2")),
-    ("E-posta imzası", "Yazı Logo / Renkli", lk(WM, "Renkli", "png5")),
+    ("E-posta imzası, antetli kâğıt", "Yatay Logo / Renkli", lk(YT, "Renkli", "png5") + " · " + lk(YT, "Renkli", "cmyk")),
     ("Robot gövdesi, çıkartma (sticker)", "Amblem / Koyu zemin", lk(EM, "Koyu zemin", "cmyk")),
     ("Tasarımcıya, düzenleme için", "Amblem / Renkli", lk(EM, "Renkli", "ai")),
 ]
 FOLD = {"Amblem / Renkli": "Amblem/Renkli", "Amblem / Koyu zemin": "Amblem/Koyu zemin", "Tek renk lacivert": "Amblem/Tek renk lacivert",
-        "Profil": "Profil", "Yazı Logo / Renkli": "Yazi Logo/Renkli"}
+        "Profil": "Profil", "Yazı Logo / Renkli": "Yazi Logo/Renkli", "Yatay Logo / Renkli": "Yatay Logo/Renkli"}
 def ver(b):
     if b in FOLD:
         return f'<a href="{tree(FOLD[b])}">{b}</a>'
     if b == "Tek renk lacivert / beyaz":
         return f'<a href="{tree("Amblem/Tek renk lacivert")}">Tek renk lacivert</a> / <a href="{tree("Amblem/Tek renk beyaz")}">beyaz</a>'
+    if b == "Yatay Renkli / Koyu zemin":
+        return f'Yatay <a href="{tree("Yatay Logo/Renkli")}">Renkli</a> / <a href="{tree("Yatay Logo/Koyu zemin")}">Koyu zemin</a>'
     if b == "Renkli / Koyu zemin":
         return f'<a href="{tree("Amblem/Renkli")}">Renkli</a> / <a href="{tree("Amblem/Koyu zemin")}">Koyu zemin</a>'
     raise KeyError(b)
@@ -185,11 +197,14 @@ THUMB = {"Amblem / Renkli": [("t0.png", "Amblem/Renkli")], "Amblem / Koyu zemin"
          "Tek renk lacivert": [("t2.png", "Amblem/Tek renk lacivert")],
          "Tek renk lacivert / beyaz": [("t2.png", "Amblem/Tek renk lacivert"), ("t3.png", "Amblem/Tek renk beyaz")],
          "Renkli / Koyu zemin": [("t0.png", "Amblem/Renkli"), ("t1.png", "Amblem/Koyu zemin")],
-         "Profil": [("pw.png", "Profil"), ("pn.png", "Profil")], "Yazı Logo / Renkli": [("t4.png", "Yazi Logo/Renkli")]}
+         "Profil": [("pw.png", "Profil"), ("pn.png", "Profil")], "Yazı Logo / Renkli": [("t4.png", "Yazi Logo/Renkli")],
+         "Yatay Logo / Renkli": [("t5.png", "Yatay Logo/Renkli")],
+         "Yatay Renkli / Koyu zemin": [("t5.png", "Yatay Logo/Renkli"), ("t6.png", "Yatay Logo/Koyu zemin")]}
 # tight thumbnails for the need table: logo cropped to its ink, on a 240x150 card
 for n, src, bg in (("t0.png", fname(EM, "Renkli", " 512px.png"), WHITE), ("t1.png", fname(EM, "Koyu zemin", " 512px.png"), NAVY),
                    ("t2.png", fname(EM, "Tek renk lacivert", " 512px.png"), WHITE), ("t3.png", fname(EM, "Tek renk beyaz", " 512px.png"), NAVY),
-                   ("t4.png", fname(WM, "Renkli", " 512px.png"), WHITE), ("pw.png", "Profil/ALFA 8084 - Profil beyaz 400px.png", WHITE),
+                   ("t4.png", fname(WM, "Renkli", " 512px.png"), WHITE), ("t5.png", fname(YT, "Renkli", " 512px.png"), WHITE),
+                   ("t6.png", fname(YT, "Koyu zemin", " 512px.png"), NAVY), ("pw.png", "Profil/ALFA 8084 - Profil beyaz 400px.png", WHITE),
                    ("pn.png", "Profil/ALFA 8084 - Profil lacivert 400px.png", NAVY)):
     im = Image.open(ROOT + src).convert("RGBA")
     im = im.crop(im.getchannel("A").getbbox()) if "Profil" not in src else im
@@ -208,12 +223,14 @@ PAGES = [
     ("Hangi işe hangi dosya?", f"""
 <p>İhtiyacınızı bulun ve <b>mavi bağlantıya</b> tıklayın (internet gerekir): <b>Sürüm</b> sütunu o sürümün klasörünü (bütün biçimler) GitHub'da açar, <b>Dosya</b> sütunu dosyanın kendisini açar veya indirir.
 Aynı dosyalar ZIP paketinde de aynı klasör adlarıyla bulunur. Her sürüm <b>.ai</b>, <b>.pdf</b>, <b>Baski CMYK.pdf</b>, <b>.svg</b> ve
-<b>512 / 1024 / 2048 / 4096 px .png</b> olarak vardır; hepsine sayfa 3–4'teki bağlantılardan ulaşabilirsiniz. Resme tıklamak da klasörü açar.</p>
+<b>512 / 1024 / 2048 / 4096 px .png</b> olarak vardır; hepsine sayfa 3–5'teki bağlantılardan ulaşabilirsiniz. Resme tıklamak da klasörü açar.</p>
 {need_table(NEED[:HALF])}
 """),
     ("Hangi işe hangi dosya? (devam)", need_table(NEED[HALF:])),
     ("Logo sürümleri – Amblem", f"<p>Amblem takımın ana logosudur. Zeminin rengine göre sürümü seçin; bağlantılar dosyayı açar.</p>{grid(cards[:4])}"),
     ("Logo sürümleri – Yazı Logo ve Profil", f"<p>Yazı logo, amblemin sığmadığı yatay ve dar alanlar içindir.</p>{grid(cards[4:8])}"),
+    ("Logo sürümleri – Yatay Logo", f"<p>Yatay logo amblem ile yazı logoyu yan yana birleştirir: geniş ve alçak alanlar (site başlığı, imza, banner) içindir. "
+     f"Yazı, amblem yüksekliğinin %72'si; aradaki boşluk %16'sıdır. Parçaları kendiniz yan yana dizmeyin, bu dosyaları kullanın.</p>{grid(yatay_cards)}"),
     ("Renkler", """
 <table>
 <tr><th></th><th>Renk</th><th>HEX</th><th>RGB</th><th>CMYK<br/>(kuşe kâğıt)</th><th>Pantone<br/>(en yakın)</th></tr>
@@ -235,12 +252,13 @@ Pantone ile baskı yaptıracaksanız (serigrafi, tekstil) baskıdan önce Panton
 </table>
 <h2 style="margin-top:12pt">Koruma alanı ve en küçük boyut</h2>
 <table><tr><td style="width:240pt"><img src="clear.png" width="230"/></td><td>
-<p><b>Koruma alanı (x):</b> logonun her yanında, logonun uzun kenarının en az %10'u kadar boş alan bırakın. Bu alana yazı, çizgi veya başka logo girmez.</p>
+<p><b>Koruma alanı (x):</b> logonun her yanında, logonun uzun kenarının en az %10'u kadar boş alan bırakın (yatay logoda yüksekliğin %10'u). Bu alana yazı, çizgi veya başka logo girmez.</p>
 <p>Dosyalardaki kenar boşluğu tam bu kadardır; dosyayı kırpmadan kullanın.</p></td></tr></table>
 <table>
 <tr><th>Logo</th><th>Ekranda en az</th><th>Baskıda en az</th></tr>
 <tr><td>Amblem</td><td>128 px genişlik</td><td>30 mm genişlik</td></tr>
 <tr class="z"><td>Yazı Logo</td><td>128 px genişlik</td><td>30 mm genişlik</td></tr>
+<tr><td>Yatay Logo</td><td>220 px genişlik</td><td>50 mm genişlik</td></tr>
 </table>
 <p class="note">Daha küçükte ROBOTICS ve 8084 okunmaz. Nakışta en az 60 mm önerilir (ince çizgiler iplikte kaybolur).</p>"""),
     ("Yapmayın", """

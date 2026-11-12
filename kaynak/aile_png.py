@@ -33,7 +33,7 @@ for pdf in sorted(glob.glob(ROOT + "*/*/*.pdf")):
         render(pdf, w).save(f"{base} {w}px.png", optimize=True)
     svg = base + ".svg"
     s = open(svg, encoding="utf-8").read()
-    if "<title>" not in s:
+    if "<title" not in s:
         name = os.path.basename(base).replace("ALFA 8084 - ", "ALFA Robotics 8084 ")
         s = re.sub(r"(<svg\b[^>]*?)>", r'\1 role="img" aria-labelledby="t">' + f'\n<title id="t">{name}</title>', s, count=1)
         open(svg, "w", encoding="utf-8", newline="\n").write(s)

@@ -117,7 +117,7 @@ function sticker(d, layerName) {
 }
 function fitAndSave(d, base) {
     d.selection = null;
-    var b = d.visibleBounds, w = b[2] - b[0], h = b[1] - b[3], m = Math.max(w, h) * MARGIN_RATIO;
+    var b = d.visibleBounds, w = b[2] - b[0], h = b[1] - b[3], m = (typeof MARGIN_SHORT != "undefined" ? Math.min(w, h) : Math.max(w, h)) * MARGIN_RATIO;
     d.artboards[0].artboardRect = [b[0] - m, b[1] + m, b[2] + m, b[3] - m];
     new Folder(base.substring(0, base.lastIndexOf("/"))).create();
     var ai = new IllustratorSaveOptions(); ai.pdfCompatible = true; ai.compatibility = Compatibility.ILLUSTRATOR24;
