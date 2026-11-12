@@ -1,10 +1,13 @@
-// v10 logo family: colour (white ROBOTICS), dark-background (white sticker edge), one-colour navy / white, icon.
+// v10 logo family: colour (white ROBOTICS), dark-background (white sticker edge), one-colour navy / white.
+// Each variant also gets a CMYK print PDF (Coated FOGRA39 values, see CMYK below).
 // Opens the v10 .ai files (unchanged), builds each variant with Pathfinder, saves .ai + PDF + SVG.
 // Artboard = artwork bounds + equal margin (10% of the longer side). PNGs are rendered from the PDFs afterwards (aile_png.py).
 var SRC = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/";
 var OUT = SRC + "v10 surum ailesi/";
 var STICKER = 8;          // white edge for the dark-background version, pt
 var MARGIN_RATIO = 0.10;
+// sRGB -> Coated FOGRA39, relative colorimetric (kaynak/renk.py); Pantone matches are in the guide
+var CMYK = { "ALFA Lacivert": [100, 82, 36, 23], "ALFA Açık Mavi": [58, 4, 1, 0], "ALFA Buz": [22, 2, 12, 0] };
 var ONLY = (typeof ONLY_VARIANT != "undefined") ? ONLY_VARIANT : null;
 var log = [];
 
@@ -112,12 +115,6 @@ function sticker(d, layerName) {
     o = solid(d, o, L); fill(o, white()); o.name = "Beyaz kenar " + STICKER + " pt";
     return o;
 }
-function icon(d) { // shield top + wolf only
-    var keep = { "Kalkan \u00fcst": 1, "Kurt": 1 };
-    var a = d.layers;
-    for (var k = 0; k < a.length; k++) for (var i = a[k].groupItems.length - 1; i >= 0; i--) if (!keep[a[k].groupItems[i].name]) a[k].groupItems[i].remove();
-    for (var m = d.layers.length - 1; m >= 0; m--) if (d.layers[m].pageItems.length == 0) d.layers[m].remove();
-}
 function fitAndSave(d, base) {
     d.selection = null;
     var b = d.visibleBounds, w = b[2] - b[0], h = b[1] - b[3], m = Math.max(w, h) * MARGIN_RATIO;
@@ -131,6 +128,14 @@ function fitAndSave(d, base) {
     d.exportFile(new File(base + ".svg"), ExportType.SVG, s);
     var o = new PDFSaveOptions(); o.compatibility = PDFCompatibility.ACROBAT7; o.preserveEditability = false; o.generateThumbnails = true; o.viewAfterSaving = false;
     d.saveAs(new File(base + ".pdf"), o);
+    // print PDF: document to CMYK, brand swatches set to their CMYK values (white becomes 0/0/0/0)
+    app.executeMenuCommand("doc-color-cmyk");
+    for (var k = 0; k < d.spots.length; k++) {
+        var v = CMYK[d.spots[k].name]; if (!v) continue;
+        var c = new CMYKColor(); c.cyan = v[0]; c.magenta = v[1]; c.yellow = v[2]; c.black = v[3];
+        d.spots[k].color = c;
+    }
+    d.saveAs(new File(base + " - Baski CMYK.pdf"), o);
     d.close(SaveOptions.DONOTSAVECHANGES);
     log.push(base.substring(OUT.length) + "  " + w.toFixed(1) + " x " + h.toFixed(1) + " pt");
 }
@@ -143,11 +148,7 @@ var jobs = [
     ["Amblem/Tek renk beyaz",    EM, function (d) { oneColour(d, white(), "Tek renk"); }],
     ["Yazi Logo/Renkli",            WM, function (d) { whiteRobotics(d); }],
     ["Yazi Logo/Tek renk lacivert", WM, function (d) { oneColour(d, sw(d, "ALFA Lacivert"), "Tek renk"); }],
-    ["Yazi Logo/Tek renk beyaz",    WM, function (d) { oneColour(d, white(), "Tek renk"); }],
-    ["Simge/Renkli",            EM, function (d) { icon(d); }],
-    ["Simge/Koyu zemin",        EM, function (d) { icon(d); sticker(d, "Beyaz kenar"); }],
-    ["Simge/Tek renk lacivert", EM, function (d) { icon(d); oneColour(d, sw(d, "ALFA Lacivert"), "Tek renk"); }],
-    ["Simge/Tek renk beyaz",    EM, function (d) { icon(d); oneColour(d, white(), "Tek renk"); }]
+    ["Yazi Logo/Tek renk beyaz",    WM, function (d) { oneColour(d, white(), "Tek renk"); }]
 ];
 app.userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
 for (var j = 0; j < jobs.length; j++) {

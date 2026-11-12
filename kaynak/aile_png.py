@@ -1,4 +1,4 @@
-# v10 logo family: PNGs from the PDFs made by aile_v10.jsx, SVG <title>, profile pictures and favicons.
+# v10 logo family: PNGs from the PDFs made by aile_v10.jsx, SVG <title> and profile pictures.
 import glob, os, re
 import pymupdf
 from PIL import Image
@@ -26,6 +26,8 @@ def square(pdf, size, fill, bg):
 
 # 1. transparent PNGs + SVG title for every variant
 for pdf in sorted(glob.glob(ROOT + "*/*/*.pdf")):
+    if pdf.endswith("CMYK.pdf"):
+        continue
     base = pdf[:-4]
     for w in (512, 1024, 2048, 4096):
         render(pdf, w).save(f"{base} {w}px.png", optimize=True)
@@ -47,14 +49,4 @@ for size in (400, 1080):
     square(em, size, 1.03, (255, 255, 255, 255)).convert("RGB").save(f"{P}ALFA 8084 - Profil beyaz {size}px.png")
     square(emd, size, 1.03, NAVY + (255,)).convert("RGB").save(f"{P}ALFA 8084 - Profil lacivert {size}px.png")
 
-# 3. favicons from the icon (colour); tiny sizes use the artboard without its margin
-F = ROOT + "Favicon/"
-os.makedirs(F, exist_ok=True)
-ic = ROOT + "Simge/Renkli/ALFA 8084 - Simge v10 - Renkli.pdf"
-big = square(ic, 512, 1.10, (0, 0, 0, 0))
-big.save(F + "ALFA 8084 - Simge 512px.png")
-square(ic, 180, 1.10, (255, 255, 255, 255)).convert("RGB").save(F + "apple-touch-icon 180px.png")
-square(ic, 256, 1.20, (0, 0, 0, 0)).save(F + "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48), (64, 64)])
-for s in (16, 32, 48):
-    square(ic, s * 8, 1.20, (0, 0, 0, 0)).resize((s, s), Image.LANCZOS).save(f"{F}favicon {s}px.png")
-print("profil + favicon ok")
+print("profil ok")
