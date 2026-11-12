@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 from duvar_kagidi import (W, H, CX, CY, FOOT_Y, YY, XX, SKY, ICE, WHITE, OUT, svg, line, poly, shape, circle, rot,
                           path, arr_img, mix, dist, alpha_mul, clear_zone, clock_dim, scale_alpha, glow, add, logo,
-                          font, text, footer, finish, preview, DESK, K, kk, kg)
+                          font, text, footer, finish, preview, DESK, K, kk, kg, YATAY)
 
 
 # ---------- helpers ----------
@@ -255,7 +255,7 @@ def d_galaxy():
     light(a, c1 * (0.6 + 0.6 * n3), (190, 50, 230)); light(a, c2 * (0.6 + 0.6 * n3), (40, 140, 255)); light(a, (c1 * c2) * 2.5, (255, 90, 170))
     base = arr_img(a)
     base.alpha_composite(alpha_mul(stars(rng, 600 if DESK else 520, 0, H, 4.5, flare=0.04), clock_dim(0.7)))
-    pc = (3150, 560) if DESK else (1700, 1530)
+    pc = ((3330, 300) if YATAY else (3150, 560)) if DESK else (1700, 1530)
     ring = [(pc[0] + 430 * math.cos(t_), pc[1] + 120 * math.sin(t_)) for t_ in np.linspace(0, 2 * math.pi, 181)]
     ringL = svg([line(rot([(x - pc[0], y - pc[1]) for x, y in ring], math.radians(-18), pc), (255, 200, 120), 22, 0.75, True)])
     sa = np.zeros((H, W, 4), np.uint8)
@@ -382,7 +382,7 @@ def d_stadium():
     lights = [circle(rng.uniform(0, W), rng.uniform((0.90 if DESK else 0.88) * H, 0.96 * H), rng.uniform(5, 9), fill=(255, 250, 220)) for _ in range(60 if DESK else 40)]
     base.alpha_composite(svg(crowd)); add(base, svg(lights), glows=((12, 1.5),))
     fx_logo(base, 1320, fx=(("glow", (255, 255, 255), 120, 0.5), ("neon", (255, 210, 0), 10, 40, 0.8)))
-    footer(base, "ALFA ROBOTICS  ·  8084", y=CY + 660 if DESK else round(0.82 * H), color=(255, 230, 120))
+    footer(base, "ALFA ROBOTICS  ·  8084", y=CY + kk(820) if DESK else round(0.82 * H), color=(255, 230, 120))
     return base
 
 

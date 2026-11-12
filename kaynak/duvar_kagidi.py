@@ -2,6 +2,7 @@
 # Vector art is written as SVG and rasterised with PyMuPDF; gradients, glows and text with numpy / PIL.
 # Usage: python duvar_kagidi.py [design numbers ...]   (no argument = all), then a preview sheet is made.
 # Windows desktop set (3840 x 2160): set ALFA_DESK=1 (same for duvar_kagidi2.py); output in 'Masaustu Duvar Kagitlari/'.
+# ALFA_YATAY=1 (with ALFA_DESK=1) uses the horizontal lockup; files get the suffix ' - Yatay Logo'.
 import math, os, sys
 import numpy as np
 import pymupdf
@@ -9,10 +10,12 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 DESK = os.environ.get("ALFA_DESK") == "1"   # Windows desktop: 3840 x 2160 (4K UHD, 16:9)
 W, H = (3840, 2160) if DESK else (2160, 4680)
-K = 0.78 if DESK else 1.0                  # scale of the central composition (logo, rings) on the desktop
+K = 0.90 if DESK else 1.0                  # scale of the central composition (logo, rings) on the desktop
+YATAY = DESK and os.environ.get("ALFA_YATAY") == "1"   # desktop: horizontal lockup (emblem + wordmark) instead of the emblem
 NAVY, SKY, ICE, WHITE = (0, 58, 111), (99, 196, 242), (208, 233, 232), (255, 255, 255)
 ROOT = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/"
-EM = ROOT + "v10 surum ailesi/Amblem/Koyu zemin/ALFA 8084 - Amblem v10 - Koyu zemin.pdf"
+EM = ROOT + ("v10 surum ailesi/Yatay Logo/Koyu zemin/ALFA 8084 - Yatay Logo v10 - Koyu zemin.pdf" if YATAY else
+             "v10 surum ailesi/Amblem/Koyu zemin/ALFA 8084 - Amblem v10 - Koyu zemin.pdf")
 OUT = ROOT + ("Masaustu Duvar Kagitlari/" if DESK else "Duvar Kagitlari/")
 PREFIX = "ALFA 8084 - Masaustu " if DESK else "ALFA 8084 - Duvar Kagidi "
 BAHN, MONO = "C:/Windows/Fonts/bahnschrift.ttf", "C:/Windows/Fonts/consola.ttf"
@@ -60,7 +63,9 @@ def alpha_mul(layer, m):
     a = np.asarray(layer).copy()
     a[..., 3] = (a[..., 3] * np.clip(m, 0, 1)).astype(np.uint8)
     return Image.fromarray(a, "RGBA")
-def clear_zone(r0, r1, cx=CX, cy=CY): return np.clip((dist(cx, cy) - kk(r0)) / (kk(r1) - kk(r0)), 0, 1)
+def clear_zone(r0, r1, cx=CX, cy=CY):   # elliptical around the wide horizontal lockup
+    dd = np.hypot((XX - cx) * 0.5, YY - cy) if YATAY else dist(cx, cy)
+    return np.clip((dd - kk(r0)) / (kk(r1) - kk(r0)), 0, 1)
 def clock_dim(k=0.45):  # quieter art behind the lock-screen clock
     if DESK: return np.ones_like(YY)
     t = np.clip(1 - np.abs(YY / H - 0.145) / 0.13, 0, 1)
@@ -76,6 +81,7 @@ def add(base, layer, mask=None, glows=()):
 
 
 def logo(width):
+    if YATAY: width = round(width * 2.2)   # same emblem height share as the standalone emblem, a little smaller
     page = pymupdf.open(EM)[0]
     z = width * 1.35 / page.rect.width
     p = page.get_pixmap(matrix=pymupdf.Matrix(z, z), alpha=True)
@@ -141,7 +147,7 @@ def finish(base, name):
     a = np.asarray(base.convert("RGB")).astype(np.float32)
     a += np.random.default_rng(7).normal(0, 1.4, (H, W, 1)).astype(np.float32)   # grain: no banding in gradients
     os.makedirs(OUT, exist_ok=True)
-    f = OUT + f"{PREFIX}{name}.jpg"
+    f = OUT + f"{PREFIX}{name}{' - Yatay Logo' if YATAY else ''}.jpg"
     Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)).save(f, quality=95, subsampling=0)
     print(f)
     return f
@@ -194,7 +200,7 @@ def d_blueprint():
         d.append(circle(bx, by, 42, stroke=ICE, w=3, so=0.8))
     d = kg(d)
     # title block: under the drawing (phone), bottom-right corner of the sheet (desktop)
-    tb = (W - 1100, H - 150 - 320, W - 120, H - 150) if DESK else (x0, y1 + 320, x1, y1 + 640)
+    tb = (W - 1060, H - 150 - 320, W - 80, H - 150) if DESK else (x0, y1 + 320, x1, y1 + 640)
     dv = tb[0] + 730 if DESK else CX + 300
     t1, t2 = (46, 30) if DESK else (60, 38)
     rect(*tb, 4, 0.75)
@@ -474,7 +480,7 @@ def d_field():
         rx, ry = dCX + (3700 - CY) * FS, H / 2 - (460 - CX) * FS   # the 8084 robot after the turn
         CX, CY, W = dCX, dCY, dW
         add(base, svg(d), glows=((10, 0.4),))
-        place_logo(base, round(1060 * FS), cy=H / 2, glow_k=0.45, k=1)
+        place_logo(base, round(1180 * FS), cy=H / 2, glow_k=0.45, k=1)
         text(base, "8084", rx, ry - 150, 46, ICE, 0.95, mono=True)
         return base
     add(base, svg(d), glows=((10, 0.4),))
@@ -539,8 +545,8 @@ def d_robot():
     face_text(P(30.5, 13.5 + hw, zt), P(30.5, 13.5 - hw, zt), P(30.5, 13.5 + hw, zb), "8084")
     face_text(P(13.5 - hw, 30.5, zt), P(13.5 + hw, 30.5, zt), P(13.5 - hw, 30.5, zb), "8084")
     if DESK:
-        bb = place_logo(base, 1000, cx=0.29 * W, cy=CY, glow_k=0.6, k=1)
-        text(base, "FRC TEAM 8084", 0.29 * W, bb[3] + 130, 50, ICE, 0.85, "SemiBold", 0.42)
+        bb = place_logo(base, 1220, cx=0.28 * W, cy=CY - 40, glow_k=0.6, k=1)
+        text(base, "FRC TEAM 8084", 0.28 * W, bb[3] + 110, 50, ICE, 0.85, "SemiBold", 0.42)
         return base
     place_logo(base, 820, cy=round(0.335 * H), glow_k=0.6)
     text(base, "FRC TEAM 8084", CX, round(0.885 * H) - 30, 50, ICE, 0.85, "SemiBold", 0.42)
@@ -597,7 +603,7 @@ def d_canopy():
         fl.append(circle(x, y, rng.uniform(4, 10), fill=(205, 255, 170) if rng.random() < 0.5 else ICE, fo=rng.uniform(0.6, 1)))
     add(base, svg(fl), glows=((16, 1.6), (40, 0.8)))
     place_logo(base, 1260, glow_k=0.6)
-    text(base, "2027  ·  BIOCORE", CX, CY + 820 if DESK else round(0.795 * H), 52, (205, 255, 170), 0.9, "SemiBold", 0.35)
+    text(base, "2027  ·  BIOCORE", CX, 95 if DESK else round(0.795 * H), 52, (205, 255, 170), 0.9, "SemiBold", 0.35)
     footer(base, y=FOOT_Y + (0 if DESK else 20))
     return base
 
@@ -607,7 +613,7 @@ def d_night():
     rng = np.random.default_rng(10)
     t = YY / H
     base = arr_img(mix((2, 18, 44), (0, 50, 96), np.clip(t / 0.75, 0, 1)))
-    mc = (CX, CY - 120) if DESK else (CX, 0.43 * H)
+    mc = ((1150, CY - 90) if YATAY else (CX, CY - 120)) if DESK else (CX, 0.43 * H)   # horizontal lockup: moon behind the emblem
     moon = np.clip(1 - dist(*mc) / kk(1500), 0, 1) ** 2
     m = svg([circle(*mc, kk(560), fill=(228, 240, 240), fo=1)])
     a_ = np.asarray(base).astype(np.float32); a_[..., :3] += (moon * 70)[..., None] * np.array((0.6, 0.85, 1.0)); base = Image.fromarray(np.clip(a_, 0, 255).astype(np.uint8), "RGBA")
