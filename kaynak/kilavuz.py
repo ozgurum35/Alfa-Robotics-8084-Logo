@@ -62,9 +62,9 @@ VARIANTS = [  # folder, variant, background, title, where
     (EM, "Tek renk beyaz", NAVY, "Amblem – Tek renk beyaz",
      ["Koyu zeminde tek renk", "Beyaz serigrafi, folyo kesim", "Cam / araç etiketi, koyu kumaşa nakış"]),
     (WM, "Renkli", WHITE, "Yazı Logo – Renkli",
-     ["Yatay ve dar alanlar", "Antetli kâğıt, e-posta imzası", "Sunum alt bilgisi, robot gövdesi"]),
+     ["ROBOTICS harfleri beyaz dolgulu", "Yatay ve dar alanlar", "Antetli kâğıt, e-posta imzası", "Sunum alt bilgisi, robot gövdesi"]),
     (WM, "Tek renk lacivert", WHITE, "Yazı Logo – Tek renk lacivert",
-     ["Tek renk baskı, açık zemin", "Lazer kazıma, damga"]),
+     ["ROBOTICS harfleri boş (zemin görünür)", "Tek renk baskı, açık zemin", "Lazer kazıma, damga"]),
     (WM, "Tek renk beyaz", NAVY, "Yazı Logo – Tek renk beyaz",
      ["Koyu zemin: lacivert, siyah, koyu fotoğraf", "Koyu forma, beyaz serigrafi"]),
 ]
@@ -132,6 +132,7 @@ td, th { padding: 4pt 5pt; vertical-align: top; text-align: left; }
 th { color: #ffffff; background-color: #003A6F; font-size: 9pt; }
 tr.z td { background-color: #f2f5f8; }
 td.c { width: 50%; padding: 0 8pt 10pt 0; }
+td.t { width: 96pt; padding: 3pt 4pt; vertical-align: middle; }
 ul { margin: 2pt 0 2pt 0; padding-left: 12pt; }
 .lk { font-size: 8.5pt; }
 .note { color: #5b6775; font-size: 8.5pt; }
@@ -180,23 +181,33 @@ def ver(b):
     if b == "Renkli / Koyu zemin":
         return f'<a href="{tree("Amblem/Renkli")}">Renkli</a> / <a href="{tree("Amblem/Koyu zemin")}">Koyu zemin</a>'
     raise KeyError(b)
-need_rows = "".join(f'<tr class="{"z" if i % 2 else ""}"><td>{a}</td><td>{ver(b)}</td><td>{c}</td></tr>' for i, (a, b, c) in enumerate(NEED))
+THUMB = {"Amblem / Renkli": [("t0.png", "Amblem/Renkli")], "Amblem / Koyu zemin": [("t1.png", "Amblem/Koyu zemin")],
+         "Tek renk lacivert": [("t2.png", "Amblem/Tek renk lacivert")],
+         "Tek renk lacivert / beyaz": [("t2.png", "Amblem/Tek renk lacivert"), ("t3.png", "Amblem/Tek renk beyaz")],
+         "Renkli / Koyu zemin": [("t0.png", "Amblem/Renkli"), ("t1.png", "Amblem/Koyu zemin")],
+         "Profil": [("pw.png", "Profil"), ("pn.png", "Profil")], "Yazı Logo / Renkli": [("t4.png", "Yazi Logo/Renkli")]}
+# tight thumbnails for the need table: logo cropped to its ink, on a 240x150 card
+for n, src, bg in (("t0.png", fname(EM, "Renkli", " 512px.png"), WHITE), ("t1.png", fname(EM, "Koyu zemin", " 512px.png"), NAVY),
+                   ("t2.png", fname(EM, "Tek renk lacivert", " 512px.png"), WHITE), ("t3.png", fname(EM, "Tek renk beyaz", " 512px.png"), NAVY),
+                   ("t4.png", fname(WM, "Renkli", " 512px.png"), WHITE), ("pw.png", "Profil/ALFA 8084 - Profil beyaz 400px.png", WHITE),
+                   ("pn.png", "Profil/ALFA 8084 - Profil lacivert 400px.png", NAVY)):
+    im = Image.open(ROOT + src).convert("RGBA")
+    im = im.crop(im.getchannel("A").getbbox()) if "Profil" not in src else im
+    c = Image.new("RGBA", (240, 150), bg + (255,)); im.thumbnail((216, 132))
+    c.alpha_composite(im, ((240 - im.width) // 2, (150 - im.height) // 2))
+    if bg == WHITE: ImageDraw.Draw(c).rectangle((0, 0, 239, 149), outline=(210, 216, 222), width=2)
+    c.convert("RGB").save(IMG + n)
+def thumbs(b):
+    return "".join(f'<a href="{tree(f)}"><img src="{im}" width="46"/></a> ' for im, f in THUMB[b])
+need_rows = "".join(f'<tr class="{"z" if i % 2 else ""}"><td class="t">{thumbs(b)}</td><td>{a}</td><td>{ver(b)}</td><td>{c}</td></tr>' for i, (a, b, c) in enumerate(NEED))
 
 PAGES = [
     ("Hangi işe hangi dosya?", f"""
 <p>İhtiyacınızı bulun ve <b>mavi bağlantıya</b> tıklayın (internet gerekir): <b>Sürüm</b> sütunu o sürümün klasörünü (bütün biçimler) GitHub'da açar, <b>Dosya</b> sütunu dosyanın kendisini açar veya indirir.
 Aynı dosyalar ZIP paketinde de aynı klasör adlarıyla bulunur. Her sürüm <b>.ai</b>, <b>.pdf</b>, <b>Baski CMYK.pdf</b>, <b>.svg</b> ve
-<b>512 / 1024 / 2048 / 4096 px .png</b> olarak vardır; hepsine sayfa 2–3'teki bağlantılardan ulaşabilirsiniz.</p>
-<table><tr><th>İhtiyaç</th><th>Sürüm (klasörü açar)</th><th>Dosya (dosyayı açar)</th></tr>{need_rows}</table>
-<h2 style="margin-top:12pt">Dosya biçimleri</h2>
-<table>
-<tr><th>Biçim</th><th>Ne için</th></tr>
-<tr><td class="f">Baskı CMYK PDF</td><td>Matbaa ve tekstil baskısı. Renkler baskı mürekkebine (CMYK) göre tanımlı. Matbaaya her zaman bunu verin.</td></tr>
-<tr class="z"><td class="f">PDF</td><td>Ekran renkli (RGB) vektör dosya: dijital belge, ofis yazıcısı.</td></tr>
-<tr><td class="f">SVG</td><td>Web sitesi; lazer, folyo kesim ve CNC yazılımları. Vektör, her boyutta net.</td></tr>
-<tr class="z"><td class="f">PNG</td><td>Ofis programları, Canva, sosyal medya, mesajlaşma. Saydam zemin. 512 px küçük, 1024 px sunum ve web, 2048 px büyük ekran, 4096 px yüksek çözünürlük. Kendi boyutundan büyütmeyin.</td></tr>
-<tr><td class="f">AI</td><td>Adobe Illustrator kaynağı: düzenleme, nakışçıya ve tasarımcıya kaynak.</td></tr>
-</table>"""),
+<b>512 / 1024 / 2048 / 4096 px .png</b> olarak vardır; hepsine sayfa 2–3'teki bağlantılardan ulaşabilirsiniz. Resme tıklamak da klasörü açar.</p>
+<table><tr><th style="width:96pt">Logo</th><th>İhtiyaç</th><th>Sürüm (klasörü açar)</th><th>Dosya (dosyayı açar)</th></tr>{need_rows}</table>
+"""),
     ("Logo sürümleri – Amblem", f"<p>Amblem takımın ana logosudur. Zeminin rengine göre sürümü seçin; bağlantılar dosyayı açar.</p>{grid(cards[:4])}"),
     ("Logo sürümleri – Yazı Logo ve Profil", f"<p>Yazı logo, amblemin sığmadığı yatay ve dar alanlar içindir.</p>{grid(cards[4:8])}"),
     ("Renkler", """
@@ -209,6 +220,15 @@ Aynı dosyalar ZIP paketinde de aynı klasör adlarıyla bulunur. Her sürüm <b
 <p class="note">CMYK değerleri Coated FOGRA39 (Avrupa kuşe kâğıt baskı standardı) için hesaplanmıştır ve Baskı CMYK PDF dosyalarında tanımlıdır.
 Pantone eşleşmeleri ekran renginden hesaplanmış en yakın Solid Coated renklerdir (ΔE2000: 654 C 0,6 · 297 C 2,6 · 9502 C 1,6); resmî değildir.
 Pantone ile baskı yaptıracaksanız (serigrafi, tekstil) baskıdan önce Pantone kartelasında renkleri gözle doğrulayın. Önemli baskılarda matbaadan renk provası isteyin.</p>
+"""),
+    ("Dosya biçimleri ve boyut", """<table>
+<tr><th>Biçim</th><th>Ne için</th></tr>
+<tr><td class="f">Baskı CMYK PDF</td><td>Matbaa ve tekstil baskısı. Renkler baskı mürekkebine (CMYK) göre tanımlı. Matbaaya her zaman bunu verin.</td></tr>
+<tr class="z"><td class="f">PDF</td><td>Ekran renkli (RGB) vektör dosya: dijital belge, ofis yazıcısı.</td></tr>
+<tr><td class="f">SVG</td><td>Web sitesi; lazer, folyo kesim ve CNC yazılımları. Vektör, her boyutta net.</td></tr>
+<tr class="z"><td class="f">PNG</td><td>Ofis programları, Canva, sosyal medya, mesajlaşma. Saydam zemin. 512 px küçük, 1024 px sunum ve web, 2048 px büyük ekran, 4096 px yüksek çözünürlük. Kendi boyutundan büyütmeyin.</td></tr>
+<tr><td class="f">AI</td><td>Adobe Illustrator kaynağı: düzenleme, nakışçıya ve tasarımcıya kaynak.</td></tr>
+</table>
 <h2 style="margin-top:12pt">Koruma alanı ve en küçük boyut</h2>
 <table><tr><td style="width:240pt"><img src="clear.png" width="230"/></td><td>
 <p><b>Koruma alanı (x):</b> logonun her yanında, logonun uzun kenarının en az %10'u kadar boş alan bırakın. Bu alana yazı, çizgi veya başka logo girmez.</p>
