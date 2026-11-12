@@ -129,13 +129,13 @@ num, NUM_CAP = best[2], best[1]""")
 groups = '''groups = [
     ("Kalkan ust", [("Lacivert siluet", "Lacivert", [anchors(up_navy)]), ("Gok sol", "Acik Mavi", [skyTL]),
                     ("Gok sag", "Acik Mavi", [skyR]), ("Gok centik", "Acik Mavi", [skyD])]),
-    ("Kalkan alt", [("Cerceve", "Lacivert", [anchors(lo_out)]), ("Zemin", "Acik Mavi", [lo_in_an])]),
-    ("Kurt", [("Bas ve boyun", "Buz", [head]), ("Goz ve kulak", "Buz", [eye]), ("Yele 1", "Buz", [fur1]),
-              ("Yele 2", "Buz", [fur2]), ("Kapali goz", "Lacivert", [lid])]),
+    ("Kalkan alt", [("Cerceve", "Lacivert", [anchors(lo_out)]),
+                    ("Zemin (8084 bosluklu)", "Acik Mavi", [lo_in_an] + [smooth_joins(drop_tiny(c_), 20.0) for c_ in num])]),
+    ("Kurt", [("Bas ve boyun (kapali goz bosluklu)", "Buz", [head, lid]), ("Goz ve kulak", "Buz", [eye]), ("Yele 1", "Buz", [fur1]),
+              ("Yele 2", "Buz", [fur2])]),
     ("ALFA", [("A sol", "Lacivert", [poly(LT["A1"])]), ("L", "Lacivert", [poly(LT["L"])]),
               ("F", "Lacivert", [poly(LT["F"]), poly(LT["F1"]), poly(LT["F2"])]), ("A sag", "Lacivert", [poly(LT["A2"])])]),
-    ("ROBOTICS", [("Bant + ROBOTICS", "Lacivert", [poly(band)] + robotics)]),
-    ("8084", [("8084", "Lacivert", num)]),
+    ("ROBOTICS", [("Bant + ROBOTICS", "Lacivert", [poly(band)] + [smooth_joins(drop_tiny(c_), 20.0) for c_ in robotics])]),
 ]'''
 audit = '''
 # KINKDBG
@@ -151,4 +151,5 @@ for nm, an in (("head", head), ("eye", eye), ("fur1", fur1), ("fur2", fur2), ("s
     print("audit wolf %-5s nodes %2d | unintended kinks %d | tiny segments %d" % ((nm,) + kinks(an)))
 '''
 tail = seg(360, 363) + "\n\n" + groups + "\n" + seg(375, 462) + audit + "\n" + seg(467, 512) + "\n"
+tail = rep(tail, '("8084", [("8084", "Lacivert", big)])', '("8084", [("8084", "Lacivert", [smooth_joins(drop_tiny(c_), 20.0) for c_ in big])])')
 open("design5.py", "w", encoding="utf-8").write(head + "\n\n" + open("wolf5_block.py", encoding="utf-8").read() + "\n" + mid + "\n\n" + tail)

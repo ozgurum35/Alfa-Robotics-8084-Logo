@@ -144,6 +144,54 @@ def left_arc(p, t, r, deg):
     return Ar(c, p, rot(p, -deg, c), -1), rot(p, -deg, c), rot(t, -deg)
 
 
+def _tang(an, k, closed=True):
+    a = an[k]; p = a["p"]
+    pv = an[k - 1] if (closed or k > 0) else None
+    nx = an[(k + 1) % len(an)] if (closed or k < len(an) - 1) else None
+    tin = next((p - h for h in ((a["i"],) + ((pv["o"], pv["p"]) if pv else ())) if h is not None and math.hypot(*(p - h)) > 1e-6), None)
+    tout = next((h - p for h in ((a["o"],) + ((nx["i"], nx["p"]) if nx else ())) if h is not None and math.hypot(*(h - p)) > 1e-6), None)
+    return tin, tout, pv, nx
+
+
+def drop_tiny(an, eps=0.3):
+    """merge nodes closer than eps (font-outline debris): keep the first node's in-handle and the second's out-handle"""
+    out = [dict(a) for a in an]
+    k = 0
+    while len(out) > 3 and k < len(out):
+        a, b = out[k], out[(k + 1) % len(out)]
+        if math.hypot(*(b["p"] - a["p"])) < eps:
+            m = dict(a, o=b["o"])
+            out[k] = m
+            del out[(k + 1) % len(out)]
+            if (k + 1) % (len(out) + 1) == 0:
+                k = 0
+            continue
+        k += 1
+    return out
+
+
+def smooth_joins(an, max_deg, closed=True, only=None):
+    """make nearly-smooth joints exactly tangent: both handles on the bisector, lengths kept (1/3 of the segment
+    for a missing handle). Corners sharper than max_deg are design corners and stay."""
+    out = [dict(a) for a in an]
+    for k in range(len(out)):
+        if only is not None and k not in only:
+            continue
+        tin, tout, pv, nx = _tang(out, k, closed)
+        if tin is None or tout is None or pv is None or nx is None:
+            continue
+        c = max(-1.0, min(1.0, (tin @ tout) / math.hypot(*tin) / math.hypot(*tout)))
+        ang = math.degrees(math.acos(c))
+        if not (0.05 < ang < max_deg):
+            continue
+        d = unit(unit(tin) + unit(tout))
+        p = out[k]["p"]
+        li = math.hypot(*(p - out[k]["i"])) if out[k]["i"] is not None else math.hypot(*(p - pv["p"])) / 3
+        lo = math.hypot(*(out[k]["o"] - p)) if out[k]["o"] is not None else math.hypot(*(nx["p"] - p)) / 3
+        out[k]["i"], out[k]["o"] = p - li * d, p + lo * d
+    return out
+
+
 def tidy(an):
     out = []
     carry = None
@@ -194,7 +242,16 @@ JB2 = JB1 + 6.0 * tu
 # so the ice tongue between throat and blade closes there as in the original drawing
 BS = 4.0 * V(0.9659, -0.2588)                       # neck blade (original nodes 20-23) shift
 TT = 0.2                               # throat end: fraction of the way up the blade's right edge (0 = blade tip node 20)
-N20 = V(*W["H"][20]["p"]) + BS + TT * (V(*W["H"][21]["p"]) - V(*W["H"][20]["p"]))
+# the throat meets the blade's right edge at curve parameter TT of the original edge 20 -> 21; the rest of that
+# edge keeps its exact original shape (de Casteljau split), so the blade tip has no crossing hairline
+_E = [V(*W["H"][20]["p"]), V(*W["H"][20]["p"]), V(*W["H"][21]["i"]), V(*W["H"][21]["p"])]
+_bz = lambda t: (1 - t) ** 3 * _E[0] + 3 * (1 - t) ** 2 * t * _E[1] + 3 * (1 - t) * t * t * _E[2] + t ** 3 * _E[3]
+_chord = _E[0] + TT * (_E[3] - _E[0])                   # approved meeting point (TT of the chord) ...
+_tt = min(np.linspace(0, 1, 4001), key=lambda t: math.hypot(*(_bz(t) - _chord)))   # ... taken onto the edge itself
+_e1 = [_E[k] + _tt * (_E[k + 1] - _E[k]) for k in range(3)]
+_e2 = [_e1[k] + _tt * (_e1[k + 1] - _e1[k]) for k in range(2)]
+N20 = _e2[0] + _tt * (_e2[1] - _e2[0]) + BS
+N20o, N21i = _e2[1] + BS, _e1[2] + BS                  # handles of the remaining part N20 -> node 21
 _a = left_arc(V(0.0, 0.0), tu, 1.0, 6.0)
 _b = left_arc(V(0.0, 0.0), _a[2], 1.0, 30.0)
 R9, R10 = np.linalg.solve(np.column_stack([_a[1], _b[1]]), N20 - JB2)
@@ -227,16 +284,25 @@ ticks = [{"p": V(263.9, 116.4) + MC, "i": None, "o": None}, {"p": V(259.8, 126.3
          {"p": V(266.4, 127.5), "i": None, "o": None}]
 hj_ = anchors(jaw, closed=False)
 hj_[0]["i"] = V(263.0, 129.6)
+hj_[-1]["o"] = N20o                       # throat end: leave along the original blade edge
 def _hn(k, s=V(0.0, 0.0)):
     a = W["H"][k]
     return {"p": a["p"] + s, "i": None if a["i"] is None else a["i"] + s, "o": None if a["o"] is None else a["o"] + s}
-top_ = [_hn(33), _hn(34), _hn(35), dict(_hn(0), o=None), dict(_hn(3), i=None), _hn(4), _hn(5), dict(_hn(6), o=None)]
+# back line: where the original eye slit was (nodes 0-1-2-3-4) the line is now ONE even curve from node 0 to node 5,
+# tangent to the original directions at both ends (two short straight pieces there made a bump and a dip)
+_p0, _p5 = V(*W["H"][0]["p"]), V(*W["H"][5]["p"])
+_u0, _u5 = unit(_p0 - V(*W["H"][0]["i"])), unit(V(*W["H"][5]["i"]) - _p5)
+_L = math.hypot(*(_p5 - _p0)) / 3
+top_ = [_hn(33), _hn(34), _hn(35), dict(_hn(0), o=_p0 + _L * _u0), dict(_hn(5), i=_p5 + _L * _u5), dict(_hn(6), o=None)]
 hr = top_ + anchors(ice_r, closed=False) + ticks + hj_
 # left side: mane lobes separated by dark blades, neck notch at the cut
 HK = V(0.0, -8.0)                       # the hook under the second blade, lifted clear of the (higher) cut
-left = [_hn(21, BS), _hn(22, BS), _hn(23, BS), _hn(24), _hn(25, HK), _hn(26, HK), _hn(27, HK), _hn(28), _hn(29), _hn(30), _hn(31)]
+TIPO, TIPR = 1.0, 6.0                             # neck blade tip: out-handle turned 6 deg so the two edges meet cleanly (no crossing hairline)
+_t21 = V(*W["H"][21]["p"]) + BS
+left = [dict(_hn(21, BS), i=N21i, o=rot(_t21 + TIPO * (V(*W["H"][21]["o"]) + BS - _t21), TIPR, _t21)), _hn(22, BS), _hn(23, BS), _hn(24), _hn(25, HK), _hn(26, HK), _hn(27, HK),
+        dict(_hn(28), i=V(*W["H"][28]["i"]) + HK), _hn(29), _hn(30), _hn(31)]   # 28.i moves with the lifted hook (no crossing)
 left += [dict(_hn(32), o=None)]
-head = tidy(clip_bez(hr + left, PIN, nUp))
+head = tidy(clip_bez(smooth_joins(hr + left, 30.0), PIN, nUp))   # "ip gibi": no small breaks left (back line, nose)
 
 # --- navy/sky boundary on the right = offset of the ice chain
 gq, gd = V(304.8, 71.2), V(cosd(115.5), sind(115.5))  # upper lip edge of the sky, as drawn originally
@@ -262,6 +328,15 @@ for j in (len(wr) - 2, len(wr) - 1):
     if h:
         wr = wr[:j] + [dict(wr[j], b=h[0])]
         break
+if wr[-1]["t"] == "L" and wr[-2]["t"] == "A" and math.hypot(*(wr[-1]["b"] - wr[-1]["a"])) < 1.0:
+    # the straight run-out is only a sliver: carry the throat arc itself on to the cut instead
+    # (a sub-point line here made the sky tip's 1 pt rounding fail and leave a hairline spike)
+    _A = wr[-2]
+    _f = PIN - _A["c"]
+    _b, _cc = 2 * (_f @ dU), _f @ _f - _A["r"] ** 2
+    _ss = [(-_b + sg_ * math.sqrt(_b * _b - 4 * _cc)) / 2 for sg_ in (1, -1)]
+    _pt = min((PIN + s_ * dU for s_ in _ss), key=lambda q: math.hypot(*(q - _A["b"])))
+    wr = wr[:-2] + [dict(_A, b=_pt)]
 Xd = wr[-1]["b"]
 QR = hits(shI[2], PIN, dU)[0]
 loopR = [Ar(CT, Xa, inA["b"]), shI[1], dict(shI[2], b=QR), Ln(QR, Xd)] + [rev(p) for p in reversed(wr)]
@@ -354,6 +429,7 @@ _h = [W["H"][k] for k in range(4)]
 lid = [{"p": _h[0]["p"] + _s, "i": None, "o": None}, {"p": _h[1]["p"] + _s, "i": _h[1]["i"] + _s, "o": None},
        {"p": _h[2]["p"] + _s, "i": _h[2]["i"] + _s, "o": _h[2]["o"] + _s}, {"p": _h[3]["p"] + _s, "i": None, "o": None}]
 lid[3]["o"], lid[0]["i"] = bow(lid[3]["p"], lid[0]["p"], -0.08)
+lid = smooth_joins(lid, 30.0)
 shY = shield(WF + GP)[0][4]
 FPX, FZD, FK = 76.0, 7.0, -0.15         # mane 1: x of the upper tuft, depth of the bottom tip in the frame strip, valley between the tufts
 # mane 1: top edge concentric with the notch (WM navy between), left edge parallel to the frame,
@@ -620,13 +696,13 @@ def J_(an):
 groups = [
     ("Kalkan ust", [("Lacivert siluet", "Lacivert", [anchors(up_navy)]), ("Gok sol", "Acik Mavi", [skyTL]),
                     ("Gok sag", "Acik Mavi", [skyR]), ("Gok centik", "Acik Mavi", [skyD])]),
-    ("Kalkan alt", [("Cerceve", "Lacivert", [anchors(lo_out)]), ("Zemin", "Acik Mavi", [lo_in_an])]),
-    ("Kurt", [("Bas ve boyun", "Buz", [head]), ("Goz ve kulak", "Buz", [eye]), ("Yele 1", "Buz", [fur1]),
-              ("Yele 2", "Buz", [fur2]), ("Kapali goz", "Lacivert", [lid])]),
+    ("Kalkan alt", [("Cerceve", "Lacivert", [anchors(lo_out)]),
+                    ("Zemin (8084 bosluklu)", "Acik Mavi", [lo_in_an] + [smooth_joins(drop_tiny(c_), 20.0) for c_ in num])]),
+    ("Kurt", [("Bas ve boyun (kapali goz bosluklu)", "Buz", [head, lid]), ("Goz ve kulak", "Buz", [eye]), ("Yele 1", "Buz", [fur1]),
+              ("Yele 2", "Buz", [fur2])]),
     ("ALFA", [("A sol", "Lacivert", [poly(LT["A1"])]), ("L", "Lacivert", [poly(LT["L"])]),
               ("F", "Lacivert", [poly(LT["F"]), poly(LT["F1"]), poly(LT["F2"])]), ("A sag", "Lacivert", [poly(LT["A2"])])]),
-    ("ROBOTICS", [("Bant + ROBOTICS", "Lacivert", [poly(band)] + robotics)]),
-    ("8084", [("8084", "Lacivert", num)]),
+    ("ROBOTICS", [("Bant + ROBOTICS", "Lacivert", [poly(band)] + [smooth_joins(drop_tiny(c_), 20.0) for c_ in robotics])]),
 ]
 PAL = {"Lacivert": NAVY, "Acik Mavi": SKY, "Buz": ICE}
 MARG = 0.07
@@ -734,7 +810,7 @@ x0_, x1_, y0_, y1_ = text_box(text_contours("8084", 0))
 big_cap = wl * (y1_ - y0_) / (x1_ - x0_)
 GAPW = 2 * GP
 big, _ = place(text_contours("8084", 0), foot - nUp * (GAPW + big_cap / 2), big_cap)
-wgroups = [groups[3], groups[4], ("8084", [("8084", "Lacivert", big)])]
+wgroups = [groups[3], groups[4], ("8084", [("8084", "Lacivert", [smooth_joins(drop_tiny(c_), 20.0) for c_ in big])])]
 pts = []
 wj = []
 for gname, items in wgroups:
