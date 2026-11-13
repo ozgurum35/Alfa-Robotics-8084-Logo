@@ -2,3 +2,10 @@ kaynak/tmp/
 *.bak
 __pycache__/
 ~ai-*.tmp
+# video / 3D wallpaper outputs and drafts: published as release ZIPs, not kept in the repository
+Yeniden Olusturulan/3D Urun Duvar Kagitlari/
+Yeniden Olusturulan/3D Yorunge Duvar Kagitlari/
+Yeniden Olusturulan/Elektronik Duvar Kagitlari/
+Yeniden Olusturulan/Hareketli Duvar Kagidi/
+Yeniden Olusturulan/Hareketli Duvar Kagitlari/
+Yeniden Olusturulan/v11 taslak/
