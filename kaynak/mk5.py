@@ -152,4 +152,27 @@ for nm, an in (("head", head), ("eye", eye), ("fur1", fur1), ("fur2", fur2), ("s
 '''
 tail = seg(360, 363) + "\n\n" + groups + "\n" + seg(375, 462) + audit + "\n" + seg(467, 512) + "\n"
 tail = rep(tail, '("8084", [("8084", "Lacivert", big)])', '("8084", [("8084", "Lacivert", [smooth_joins(drop_tiny(c_), 20.0) for c_ in big])])')
-open("design5.py", "w", encoding="utf-8").write(head + "\n\n" + open("wolf5_block.py", encoding="utf-8").read() + "\n" + mid + "\n\n" + tail)
+src_ = head + "\n\n" + open("wolf5_block.py", encoding="utf-8").read() + "\n" + mid + "\n\n" + tail
+# v11: ALFA + ROBOTICS band slid along the lettering line so that, with the emblem framed symmetrically (shield axis /
+# midway between nose top and shield tip), both outer A tips are the same horizontal distance from the frame circle
+# (circle radius = farthest point / 0.92, as in the profile picture). Sizes unchanged.
+src_ = rep(src_, "def letters(Wd, gA=4.0, gLF=7.0):\n    A1, a1L, a1R = letter_A(PL, True)",
+           "ALFA_SHIFT = -8.318251   # pt along the lettering line (negative = left)\n\n\ndef letters(Wd, gA=4.0, gLF=7.0, sh=0.0):\n    A1, a1L, a1R = letter_A(PL + sh * dU, True)")
+src_ = rep(src_, "LT = letters(WD)\n", "LT = letters(WD, sh=ALFA_SHIFT)\n")
+src_ = rep(src_, "side = math.ceil(2 * R * (1 + MARG))\noff = V(side / 2, side / 2) - O\n",
+           """# v11 frame: centred on the shield axis and midway between the nose top and the shield tip
+_raw = np.vstack([sample(J_(s_), 12) for _, items_ in groups for _, _, subs_ in items_ for s_ in subs_])
+CEN = V(X0, (_raw[:, 1].min() + _raw[:, 1].max()) / 2)
+RF = float(np.hypot(_raw[:, 0] - CEN[0], _raw[:, 1] - CEN[1]).max())     # frame circle through the farthest point
+side = math.ceil(2 * RF * (1 + MARG))
+off = V(side / 2, side / 2) - CEN
+_Rp = RF / 0.92
+_gl = LT["A1"][6][0] - (CEN[0] - math.sqrt(_Rp ** 2 - (LT["A1"][6][1] - CEN[1]) ** 2))
+_gr = (CEN[0] + math.sqrt(_Rp ** 2 - (LT["A2"][2][1] - CEN[1]) ** 2)) - LT["A2"][2][0]
+print("frame: centre (%.3f, %.3f) RF %.3f | A tip -> profile circle: left %.4f right %.4f pt" % (CEN[0], CEN[1], RF, _gl, _gr))
+""")
+src_ = rep(src_, '"circle": [side / 2, side / 2, round(R, 4)]', '"circle": [side / 2, side / 2, round(RF, 4)]')
+# the wordmark keeps its v10 layout: its 8084 follows the shifted lettering
+src_ = rep(src_, 'place(text_contours("8084", 0), foot - nUp * (GAPW + big_cap / 2), big_cap)',
+           'place(text_contours("8084", 0), foot + ALFA_SHIFT * dU - nUp * (GAPW + big_cap / 2), big_cap)')
+open("design5.py", "w", encoding="utf-8").write(src_)

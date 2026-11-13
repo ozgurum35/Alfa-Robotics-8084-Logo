@@ -14,8 +14,8 @@ K = 0.90 if DESK else 1.0                  # scale of the central composition (l
 YATAY = DESK and os.environ.get("ALFA_YATAY") == "1"   # desktop: horizontal lockup (emblem + wordmark) instead of the emblem
 NAVY, SKY, ICE, WHITE = (0, 58, 111), (99, 196, 242), (208, 233, 232), (255, 255, 255)
 ROOT = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/"
-EM = ROOT + ("v10 surum ailesi/Yatay Logo/Koyu zemin/ALFA 8084 - Yatay Logo v10 - Koyu zemin.pdf" if YATAY else
-             "v10 surum ailesi/Amblem/Koyu zemin/ALFA 8084 - Amblem v10 - Koyu zemin.pdf")
+EM = ROOT + ("v11 surum ailesi/Yatay Logo/Koyu zemin/ALFA 8084 - Yatay Logo v11 - Koyu zemin.pdf" if YATAY else
+             "v11 surum ailesi/Amblem/Koyu zemin/ALFA 8084 - Amblem v11 - Koyu zemin.pdf")
 OUT = ROOT + ("Masaustu Duvar Kagitlari/" if DESK else "Duvar Kagitlari/")
 PREFIX = "ALFA 8084 - Masaustu " if DESK else "ALFA 8084 - Duvar Kagidi "
 BAHN, MONO = "C:/Windows/Fonts/bahnschrift.ttf", "C:/Windows/Fonts/consola.ttf"
@@ -215,7 +215,7 @@ def d_blueprint():
     text(base, "ALFA ROBOTICS  ·  FRC TEAM 8084", tb[0] + 50, tb[1] + 68, t1, ICE, 0.95, "SemiBold", 0.12, "l")
     text(base, "1  SWERVE MODÜLÜ ×4   2  ŞASİ 27×27" if DESK else "1  SWERVE MODÜLÜ ×4      2  ŞASİ 27×27", tb[0] + 50, tb[1] + 182, t2, ICE, 0.8, mono=True, anchor="l")
     text(base, "ÇİZEN: 8084", dv + 40, tb[1] + 182, t2, ICE, 0.8, mono=True, anchor="l")
-    text(base, "ÖLÇEK 1:5   ·   REV v10", tb[0] + 50, tb[1] + 276, t2, ICE, 0.8, mono=True, anchor="l")
+    text(base, "ÖLÇEK 1:5   ·   REV v11", tb[0] + 50, tb[1] + 276, t2, ICE, 0.8, mono=True, anchor="l")
     text(base, "SAYFA 1/1", dv + 40, tb[1] + 276, t2, ICE, 0.8, mono=True, anchor="l")
     return base
 

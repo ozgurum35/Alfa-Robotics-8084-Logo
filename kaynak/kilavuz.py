@@ -6,9 +6,10 @@ from urllib.parse import quote
 import pymupdf
 from PIL import Image, ImageDraw, ImageFont
 
-TAG = sys.argv[1] if len(sys.argv) > 1 else "v10.2"
+TAG = sys.argv[1] if len(sys.argv) > 1 else "v11"
+VER = TAG.split(".")[0]          # logo version = family folder and file names (v11, v11.1 -> v11)
 REPO = "https://github.com/ozgurum35/Alfa-Robotics-8084-Logo"
-REL = "Yeniden Olusturulan/v10 surum ailesi/"
+REL = f"Yeniden Olusturulan/{VER} surum ailesi/"
 ROOT = "D:/CLAUDE/Alfa Logo/" + REL
 OUT = ROOT + "ALFA 8084 - Logo Kullanim Kilavuzu.pdf"
 IMG = "D:/CLAUDE/Alfa Logo/kaynak/v10_calisma/kilavuz_img/"
@@ -21,7 +22,7 @@ EM, WM, YT = "Amblem", "Yazi Logo", "Yatay Logo"
 
 def fname(folder, variant, suffix):
     label = "Yazi Logo" if folder == WM else folder
-    return f"{folder}/{variant}/ALFA 8084 - {label} v10 - {variant}{suffix}"
+    return f"{folder}/{variant}/ALFA 8084 - {label} {VER} - {variant}{suffix}"
 
 
 def url(rel):  # opens / downloads the file itself

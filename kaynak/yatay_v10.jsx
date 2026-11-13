@@ -8,7 +8,7 @@ var FAM = OUT, RATIO = 0.72, GAP = 0.16;
 var ylog = [];
 function famDoc(folder, variant) {
     var label = folder;
-    return app.open(new File(FAM + folder + "/" + variant + "/ALFA 8084 - " + label + " v10 - " + variant + ".ai"));
+    return app.open(new File(FAM + folder + "/" + variant + "/ALFA 8084 - " + label + " " + VER + " - " + variant + ".ai"));
 }
 function boundsOf(items) {
     var r = null;
@@ -40,6 +40,6 @@ for (var j = 0; j < yjobs.length; j++) {
     gb = g.geometricBounds;
     g.translate(E[2] + GAP * Eh - gb[0], Ecy - (gb[1] + gb[3]) / 2);
     d.activate();
-    fitAndSave(d, FAM + "Yatay Logo/" + yjobs[j][0] + "/ALFA 8084 - Yatay Logo v10 - " + yjobs[j][0]);
+    fitAndSave(d, FAM + "Yatay Logo/" + yjobs[j][0] + "/ALFA 8084 - Yatay Logo " + VER + " - " + yjobs[j][0]);
 }
 log.join("\n");

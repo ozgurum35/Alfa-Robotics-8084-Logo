@@ -521,8 +521,11 @@ def letter_A(p_outer, long_left):
     return [aL, aR, ro, ri, notch, li, p_outer], aL, aR
 
 
-def letters(Wd, gA=4.0, gLF=7.0):
-    A1, a1L, a1R = letter_A(PL, True)
+ALFA_SHIFT = -8.318251   # pt along the lettering line (negative = left)
+
+
+def letters(Wd, gA=4.0, gLF=7.0, sh=0.0):
+    A1, a1L, a1R = letter_A(PL + sh * dU, True)
     xL = A1[2][0] + gA
     Lp = [on(cap, xL), on(cap, xL + T), on(lvl(yB - TB), xL + T), on(lvl(yB - TB), xL + Wd), on(base, xL + Wd), on(base, xL)]
     xF = xL + Wd + gLF
@@ -543,7 +546,7 @@ for _ in range(60):
         lo = WD
     else:
         hi = WD
-LT = letters(WD)
+LT = letters(WD, sh=ALFA_SHIFT)
 # band: ends parallel to the long legs, one channel away
 bl_p = LT["A1"][5] + (GP / math.cos(rad(PHI))) * hx
 br_p = LT["A2"][3] - (GP / math.cos(rad(PHI))) * hx
@@ -706,9 +709,17 @@ groups = [
 ]
 PAL = {"Lacivert": NAVY, "Acik Mavi": SKY, "Buz": ICE}
 MARG = 0.07
-side = math.ceil(2 * R * (1 + MARG))
-off = V(side / 2, side / 2) - O
-out = {"width": side, "height": side, "circle": [side / 2, side / 2, round(R, 4)], "groups": []}
+# v11 frame: centred on the shield axis and midway between the nose top and the shield tip
+_raw = np.vstack([sample(J_(s_), 12) for _, items_ in groups for _, _, subs_ in items_ for s_ in subs_])
+CEN = V(X0, (_raw[:, 1].min() + _raw[:, 1].max()) / 2)
+RF = float(np.hypot(_raw[:, 0] - CEN[0], _raw[:, 1] - CEN[1]).max())     # frame circle through the farthest point
+side = math.ceil(2 * RF * (1 + MARG))
+off = V(side / 2, side / 2) - CEN
+_Rp = RF / 0.92
+_gl = LT["A1"][6][0] - (CEN[0] - math.sqrt(_Rp ** 2 - (LT["A1"][6][1] - CEN[1]) ** 2))
+_gr = (CEN[0] + math.sqrt(_Rp ** 2 - (LT["A2"][2][1] - CEN[1]) ** 2)) - LT["A2"][2][0]
+print("frame: centre (%.3f, %.3f) RF %.3f | A tip -> profile circle: left %.4f right %.4f pt" % (CEN[0], CEN[1], RF, _gl, _gr))
+out = {"width": side, "height": side, "circle": [side / 2, side / 2, round(RF, 4)], "groups": []}
 allpts = []
 for gname, items in groups:
     jg = {"name": gname, "items": []}
@@ -809,7 +820,7 @@ wl = 2 * half
 x0_, x1_, y0_, y1_ = text_box(text_contours("8084", 0))
 big_cap = wl * (y1_ - y0_) / (x1_ - x0_)
 GAPW = 2 * GP
-big, _ = place(text_contours("8084", 0), foot - nUp * (GAPW + big_cap / 2), big_cap)
+big, _ = place(text_contours("8084", 0), foot + ALFA_SHIFT * dU - nUp * (GAPW + big_cap / 2), big_cap)
 wgroups = [groups[3], groups[4], ("8084", [("8084", "Lacivert", [smooth_joins(drop_tiny(c_), 20.0) for c_ in big])])]
 pts = []
 wj = []

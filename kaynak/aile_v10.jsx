@@ -3,7 +3,8 @@
 // Opens the v10 .ai files (unchanged), builds each variant with Pathfinder, saves .ai + PDF + SVG.
 // Artboard = artwork bounds + equal margin (10% of the longer side). PNGs are rendered from the PDFs afterwards (aile_png.py).
 var SRC = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/";
-var OUT = SRC + "v10 surum ailesi/";
+var VER = "v11";         // logo version: source .ai names, output folder and file names
+var OUT = SRC + VER + " surum ailesi/";
 var STICKER = 8;          // white edge for the dark-background version, pt
 var MARGIN_RATIO = 0.10;
 // sRGB -> Coated FOGRA39, relative colorimetric (kaynak/renk.py); Pantone matches are in the guide
@@ -115,10 +116,12 @@ function sticker(d, layerName) {
     o = solid(d, o, L); fill(o, white()); o.name = "Beyaz kenar " + STICKER + " pt";
     return o;
 }
-function fitAndSave(d, base) {
+// keep = leave the source artboard as it is (v11 emblem: square frame centred on the shield axis and midway
+// between nose top and shield tip); otherwise artboard = artwork bounds + margin
+function fitAndSave(d, base, keep) {
     d.selection = null;
     var b = d.visibleBounds, w = b[2] - b[0], h = b[1] - b[3], m = (typeof MARGIN_SHORT != "undefined" ? Math.min(w, h) : Math.max(w, h)) * MARGIN_RATIO;
-    d.artboards[0].artboardRect = [b[0] - m, b[1] + m, b[2] + m, b[3] - m];
+    if (!keep) d.artboards[0].artboardRect = [b[0] - m, b[1] + m, b[2] + m, b[3] - m];
     new Folder(base.substring(0, base.lastIndexOf("/"))).create();
     var ai = new IllustratorSaveOptions(); ai.pdfCompatible = true; ai.compatibility = Compatibility.ILLUSTRATOR24;
     d.saveAs(new File(base + ".ai"), ai);
@@ -140,7 +143,7 @@ function fitAndSave(d, base) {
     log.push(base.substring(OUT.length) + "  " + w.toFixed(1) + " x " + h.toFixed(1) + " pt");
 }
 
-var EM = "ALFA 8084 - Amblem v10", WM = "ALFA 8084 - Yazi Logo v10";
+var EM = "ALFA 8084 - Amblem " + VER, WM = "ALFA 8084 - Yazi Logo " + VER;
 var jobs = [
     ["Amblem/Renkli",            EM, function (d) { whiteRobotics(d); }],
     ["Amblem/Koyu zemin",        EM, function (d) { whiteRobotics(d); sticker(d, "Beyaz kenar"); }],
@@ -158,6 +161,6 @@ for (var j = 0; j < jobs.length; j++) {
     try { jobs[j][2](d); }
     catch (e) { log.push(jobs[j][0] + " HATA: " + e + " line " + e.line); d.close(SaveOptions.DONOTSAVECHANGES); continue; }
     var label = (parts[0] == "Yazi Logo" ? "Yazi Logo" : parts[0]);
-    fitAndSave(d, OUT + parts[0] + "/" + parts[1] + "/ALFA 8084 - " + label + " v10 - " + parts[1]);
+    fitAndSave(d, OUT + parts[0] + "/" + parts[1] + "/ALFA 8084 - " + label + " " + VER + " - " + parts[1], parts[0] == "Amblem");
 }
 log.join("\n");
