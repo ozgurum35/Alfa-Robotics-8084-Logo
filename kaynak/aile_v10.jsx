@@ -3,7 +3,7 @@
 // Opens the v10 .ai files (unchanged), builds each variant with Pathfinder, saves .ai + PDF + SVG.
 // Artboard = artwork bounds + equal margin (10% of the longer side). PNGs are rendered from the PDFs afterwards (aile_png.py).
 var SRC = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/";
-var VER = "v11";         // logo version: source .ai names, output folder and file names
+var VER = "v11.1";         // logo version: source .ai names, output folder and file names
 var OUT = SRC + VER + " surum ailesi/";
 var STICKER = 8;          // white edge for the dark-background version, pt
 var MARGIN_RATIO = 0.10;
@@ -11,6 +11,7 @@ var MARGIN_RATIO = 0.10;
 var CMYK = { "ALFA Lacivert": [100, 82, 36, 23], "ALFA Açık Mavi": [58, 4, 1, 0], "ALFA Buz": [22, 2, 12, 0] };
 var ONLY = (typeof ONLY_VARIANT != "undefined") ? ONLY_VARIANT : null;
 var log = [];
+var GUIDE = null;
 
 function sw(d, name) { for (var i = 0; i < d.swatches.length; i++) if (d.swatches[i].name == name) return d.swatches[i].color; return null; }
 function white() { var c = new RGBColor(); c.red = c.green = c.blue = 255; return c; }
@@ -18,7 +19,11 @@ function openAi(name) {
     var d = app.open(new File(SRC + name + ".ai"));
     for (var k = d.layers.length - 1; k >= 0; k--) {
         var L = d.layers[k]; L.locked = false; L.visible = true;
-        if (L.name.indexOf("K\u0131lavuz") === 0 || L.name.indexOf("Kilavuz") === 0) L.remove();
+        if (L.name.indexOf("K\u0131lavuz") === 0 || L.name.indexOf("Kilavuz") === 0) {
+            // frame circle of the emblem (centre + radius RF), read before the guide layer is dropped
+            if (L.pathItems.length) { var gb = L.pathItems[0].geometricBounds; GUIDE = { cx: (gb[0] + gb[2]) / 2, cy: (gb[1] + gb[3]) / 2, r: (gb[2] - gb[0]) / 2 }; }
+            L.remove();
+        }
     }
     return d;
 }
@@ -118,6 +123,31 @@ function sticker(d, layerName) {
 }
 // keep = leave the source artboard as it is (v11 emblem: square frame centred on the shield axis and midway
 // between nose top and shield tip); otherwise artboard = artwork bounds + margin
+// emblem on a filled square or circle (profile pictures, stickers, badges):
+// square = the emblem's own artboard (shield corners / nose top and shield tip equally far from the edges);
+// circle = the profile circle (frame circle / 0.92: nose top and shield tip vertically, both A tips horizontally equally far)
+function backdrop(d, shape, color) {
+    var L = backLayer(d, shape == "Daire" ? "Daire zemin" : "Kare zemin"), it, ab = d.artboards[0].artboardRect;
+    if (shape == "Daire") {
+        var r = GUIDE.r / 0.92;
+        it = L.pathItems.ellipse(GUIDE.cy + r, GUIDE.cx - r, 2 * r, 2 * r);
+        d.artboards[0].artboardRect = [GUIDE.cx - r, GUIDE.cy + r, GUIDE.cx + r, GUIDE.cy - r];
+    } else it = L.pathItems.rectangle(ab[1], ab[0], ab[2] - ab[0], ab[1] - ab[3]);
+    it.name = L.name; it.filled = true; it.stroked = false; it.fillColor = color;
+}
+// wordmark / horizontal logo on a filled square or circle: centred on the artwork bounds;
+// square side = longer side + 10% margin each side, circle = circle through the bounds' corners / 0.92
+function navy(d) { var c = sw(d, "ALFA Lacivert"); if (!c) { c = new RGBColor(); c.red = 0; c.green = 58; c.blue = 111; } return c; }
+function backdropFit(d, shape, color) {
+    d.selection = null;
+    var b = d.visibleBounds, w = b[2] - b[0], h = b[1] - b[3], cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2, it;
+    var L = backLayer(d, shape == "Daire" ? "Daire zemin" : "Kare zemin");
+    var r = (shape == "Daire") ? Math.sqrt(w * w + h * h) / 2 / 0.92 : Math.max(w, h) * (1 + 2 * MARGIN_RATIO) / 2;
+    if (shape == "Daire") it = L.pathItems.ellipse(cy + r, cx - r, 2 * r, 2 * r);
+    else it = L.pathItems.rectangle(cy + r, cx - r, 2 * r, 2 * r);
+    it.name = L.name; it.filled = true; it.stroked = false; it.fillColor = color;
+    d.artboards[0].artboardRect = [cx - r, cy + r, cx + r, cy - r];
+}
 function fitAndSave(d, base, keep) {
     d.selection = null;
     var b = d.visibleBounds, w = b[2] - b[0], h = b[1] - b[3], m = (typeof MARGIN_SHORT != "undefined" ? Math.min(w, h) : Math.max(w, h)) * MARGIN_RATIO;
@@ -149,18 +179,33 @@ var jobs = [
     ["Amblem/Koyu zemin",        EM, function (d) { whiteRobotics(d); sticker(d, "Beyaz kenar"); }],
     ["Amblem/Tek renk lacivert", EM, function (d) { oneColour(d, sw(d, "ALFA Lacivert"), "Tek renk"); }],
     ["Amblem/Tek renk beyaz",    EM, function (d) { oneColour(d, white(), "Tek renk"); }],
+    ["Amblem Kare/Renkli",            EM, function (d) { whiteRobotics(d); backdrop(d, "Kare", white()); }],
+    ["Amblem Kare/Koyu zemin",        EM, function (d) { whiteRobotics(d); sticker(d, "Beyaz kenar"); backdrop(d, "Kare", sw(d, "ALFA Lacivert")); }],
+    ["Amblem Kare/Tek renk lacivert", EM, function (d) { var c = sw(d, "ALFA Lacivert"); oneColour(d, c, "Tek renk"); backdrop(d, "Kare", white()); }],
+    ["Amblem Kare/Tek renk beyaz",    EM, function (d) { var c = sw(d, "ALFA Lacivert"); oneColour(d, white(), "Tek renk"); backdrop(d, "Kare", c); }],
+    ["Amblem Daire/Renkli",            EM, function (d) { whiteRobotics(d); backdrop(d, "Daire", white()); }],
+    ["Amblem Daire/Koyu zemin",        EM, function (d) { whiteRobotics(d); sticker(d, "Beyaz kenar"); backdrop(d, "Daire", sw(d, "ALFA Lacivert")); }],
+    ["Amblem Daire/Tek renk lacivert", EM, function (d) { var c = sw(d, "ALFA Lacivert"); oneColour(d, c, "Tek renk"); backdrop(d, "Daire", white()); }],
+    ["Amblem Daire/Tek renk beyaz",    EM, function (d) { var c = sw(d, "ALFA Lacivert"); oneColour(d, white(), "Tek renk"); backdrop(d, "Daire", c); }],
     ["Yazi Logo/Renkli",            WM, function (d) { whiteRobotics(d); }],
     ["Yazi Logo/Tek renk lacivert", WM, function (d) { oneColour(d, sw(d, "ALFA Lacivert"), "Tek renk"); }],
-    ["Yazi Logo/Tek renk beyaz",    WM, function (d) { oneColour(d, white(), "Tek renk"); }]
+    ["Yazi Logo/Tek renk beyaz",    WM, function (d) { oneColour(d, white(), "Tek renk"); }],
+    ["Yazi Logo Kare/Renkli",             WM, function (d) { whiteRobotics(d); backdropFit(d, "Kare", white()); }],
+    ["Yazi Logo Kare/Tek renk lacivert",  WM, function (d) { oneColour(d, sw(d, "ALFA Lacivert"), "Tek renk"); backdropFit(d, "Kare", white()); }],
+    ["Yazi Logo Kare/Tek renk beyaz",     WM, function (d) { var c = navy(d); oneColour(d, white(), "Tek renk"); backdropFit(d, "Kare", c); }],
+    ["Yazi Logo Daire/Renkli",            WM, function (d) { whiteRobotics(d); backdropFit(d, "Daire", white()); }],
+    ["Yazi Logo Daire/Tek renk lacivert", WM, function (d) { oneColour(d, sw(d, "ALFA Lacivert"), "Tek renk"); backdropFit(d, "Daire", white()); }],
+    ["Yazi Logo Daire/Tek renk beyaz",    WM, function (d) { var c = navy(d); oneColour(d, white(), "Tek renk"); backdropFit(d, "Daire", c); }]
 ];
 app.userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
 for (var j = 0; j < jobs.length; j++) {
     if (ONLY && jobs[j][0] != ONLY) continue;
+    if (typeof ONLY_PREFIX != "undefined" && ONLY_PREFIX && jobs[j][0].indexOf(ONLY_PREFIX) !== 0) continue;
     var parts = jobs[j][0].split("/");
     var d = openAi(jobs[j][1]);
     try { jobs[j][2](d); }
     catch (e) { log.push(jobs[j][0] + " HATA: " + e + " line " + e.line); d.close(SaveOptions.DONOTSAVECHANGES); continue; }
-    var label = (parts[0] == "Yazi Logo" ? "Yazi Logo" : parts[0]);
-    fitAndSave(d, OUT + parts[0] + "/" + parts[1] + "/ALFA 8084 - " + label + " " + VER + " - " + parts[1], parts[0] == "Amblem");
+    var label = parts[0];
+    fitAndSave(d, OUT + parts[0] + "/" + parts[1] + "/ALFA 8084 - " + label + " " + VER + " - " + parts[1], parts[0].indexOf("Amblem") === 0 || / (Kare|Daire)$/.test(parts[0]));
 }
 log.join("\n");

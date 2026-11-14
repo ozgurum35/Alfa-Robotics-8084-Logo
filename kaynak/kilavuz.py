@@ -6,8 +6,8 @@ from urllib.parse import quote
 import pymupdf
 from PIL import Image, ImageDraw, ImageFont
 
-TAG = sys.argv[1] if len(sys.argv) > 1 else "v11"
-VER = TAG.split(".")[0]          # logo version = family folder and file names (v11, v11.1 -> v11)
+TAG = sys.argv[1] if len(sys.argv) > 1 else "v11.1"
+VER = TAG                        # logo version = family folder and file names
 REPO = "https://github.com/ozgurum35/Alfa-Robotics-8084-Logo"
 REL = f"Yeniden Olusturulan/{VER} surum ailesi/"
 ROOT = "D:/CLAUDE/Alfa Logo/" + REL
@@ -84,6 +84,9 @@ for i, (f, v, bg, title, where) in enumerate(VARIANTS):
 yatay_cards = cards[7:]; cards = cards[:7]
 prof = " · ".join(f'<a href="{url("Profil/ALFA 8084 - Profil " + c + " " + s + "px.png")}">{c.capitalize()} {s}</a>'
                   for c in ("beyaz", "lacivert") for s in ("400", "1080"))
+# every logo also comes on a filled square and a filled circle (profile pictures, stickers, badges)
+prof += "<br>Kare / daire zeminli: " + " · ".join(f'<a href="{tree(f)}">{f}</a>' for f in (
+    "Amblem Kare", "Amblem Daire", "Yazi Logo Kare", "Yazi Logo Daire", "Yatay Logo Kare", "Yatay Logo Daire"))
 cards.append((card(ROOT + "Profil/ALFA 8084 - Profil beyaz 1080px.png", (236, 240, 244), "p7.png"), "Profil fotoğrafı",
               ["Instagram, X, LinkedIn, YouTube, WhatsApp", "Kare; yuvarlak kırpmaya hazır", "Beyaz ve lacivert zeminli"], prof, tree("Profil")))
 card(ROOT + fname(EM, "Koyu zemin", " 512px.png"), NAVY, "logo_head.png", size=(200, 200))

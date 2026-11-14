@@ -25,10 +25,13 @@ var Eh = E[1] - E[3], Ecy = (E[1] + E[3]) / 2;
 
 var yjobs = [["Renkli", "Renkli", "Renkli"], ["Koyu zemin", "Koyu zemin", "Tek renk beyaz"],
              ["Tek renk lacivert", "Tek renk lacivert", "Tek renk lacivert"], ["Tek renk beyaz", "Tek renk beyaz", "Tek renk beyaz"]];
-for (var j = 0; j < yjobs.length; j++) {
+// each lockup three times: plain (artboard = bounds + margin), on a filled square and on a filled circle
+var shapes = (typeof YATAY_SHAPES != "undefined" && YATAY_SHAPES) ? YATAY_SHAPES : [null, "Kare", "Daire"];
+var darkBg = { "Koyu zemin": true, "Tek renk beyaz": true };
+for (var j = 0; j < yjobs.length; j++) for (var q = 0; q < shapes.length; q++) {
     var d = famDoc("Amblem", yjobs[j][1]);
     var w = famDoc("Yazi Logo", yjobs[j][2]);
-    var L = d.layers.add(); L.name = "Yaz\u0131 Logo"; L.zOrder(ZOrderMethod.BRINGTOFRONT);
+    var L = d.layers.add(); L.name = "Yazı Logo"; L.zOrder(ZOrderMethod.BRINGTOFRONT);
     var g = L.groupItems.add(); g.name = "Yazi Logo";
     var src = allArt(w);
     // cross-document duplicate works only into a layer; then move into the group (order kept)
@@ -40,6 +43,8 @@ for (var j = 0; j < yjobs.length; j++) {
     gb = g.geometricBounds;
     g.translate(E[2] + GAP * Eh - gb[0], Ecy - (gb[1] + gb[3]) / 2);
     d.activate();
-    fitAndSave(d, FAM + "Yatay Logo/" + yjobs[j][0] + "/ALFA 8084 - Yatay Logo " + VER + " - " + yjobs[j][0]);
+    var folder = "Yatay Logo" + (shapes[q] ? " " + shapes[q] : "");
+    if (shapes[q]) backdropFit(d, shapes[q], darkBg[yjobs[j][0]] ? navy(d) : white());
+    fitAndSave(d, FAM + folder + "/" + yjobs[j][0] + "/ALFA 8084 - " + folder + " " + VER + " - " + yjobs[j][0], !!shapes[q]);
 }
 log.join("\n");

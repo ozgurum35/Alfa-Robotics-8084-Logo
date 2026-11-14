@@ -1,9 +1,9 @@
-# logo family (v11): PNGs from the PDFs made by aile_v10.jsx, SVG <title> and profile pictures.
+# logo family (v11.1): PNGs from the PDFs made by aile_v10.jsx, SVG <title> and profile pictures.
 import glob, os, re
 import pymupdf
 from PIL import Image
 
-ROOT = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/v11 surum ailesi/"
+ROOT = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/v11.1 surum ailesi/"
 NAVY = (0, 58, 111)
 
 
@@ -14,18 +14,21 @@ def render(pdf, width):
     return Image.frombytes("RGBA", (p.width, p.height), p.samples)
 
 
-# v11 emblem artboard (design5.py): a 440 pt square centred on the shield axis and midway between the nose top and
-# the shield tip; RF = radius of the frame circle through the farthest point of the art.
-SIDE_, RF_ = 440.0, 205.451
+# emblem artboard and profile circle come from design5.py (kaynak/emblem.json): a square centred on the shield axis and
+# midway between nose top and shield tip; "circle" = centre and radius RF of the frame circle, whose centre sits where
+# nose top and shield tip are vertically, and both outer A tips horizontally, equally far from the profile circle.
+import json
+_E = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "emblem.json")))
+SIDE_, (CX_, CY_, RF_) = float(_E["width"]), _E["circle"]
 
 
 def profile(pdf, size, bg, border=0.0, reach=0.46):
-    """Profile picture: the emblem's symmetric frame centred on the canvas; the frame circle (+ `border`, the white
-    outline of the dark version, pt) takes `reach` x side as radius, so nothing touches the circular crop."""
-    k = reach * size / (RF_ + border)                     # px per pt
+    """Profile picture: frame circle centred on the canvas, radius = `reach` x side (profile circle = RF / 0.92 at the
+    default). `border` = white outline (pt) of the dark version, kept inside the same circle."""
+    k = reach * size / RF_                                # px per pt
     im = render(pdf, round(SIDE_ * k))
     c = Image.new("RGBA", (size, size), bg)
-    c.alpha_composite(im, ((size - im.width) // 2, (size - im.height) // 2))
+    c.alpha_composite(im, (round(size / 2 - CX_ * k), round(size / 2 - CY_ * k)))
     return c
 
 
@@ -47,8 +50,8 @@ for pdf in sorted(glob.glob(ROOT + "*/*/*.pdf")):
 # 2. profile pictures: emblem centred on its landmarks inside the circular crop
 P = ROOT + "Profil/"
 os.makedirs(P, exist_ok=True)
-em = ROOT + "Amblem/Renkli/ALFA 8084 - Amblem v11 - Renkli.pdf"
-emd = ROOT + "Amblem/Koyu zemin/ALFA 8084 - Amblem v11 - Koyu zemin.pdf"
+em = ROOT + "Amblem/Renkli/ALFA 8084 - Amblem v11.1 - Renkli.pdf"
+emd = ROOT + "Amblem/Koyu zemin/ALFA 8084 - Amblem v11.1 - Koyu zemin.pdf"
 for size in (400, 1080):
     # artboard has a 10% margin on each side: 0.86 / (1 - 2 * 0.0833) keeps the art at ~86% of the side
     profile(em, size, (255, 255, 255, 255)).convert("RGB").save(f"{P}ALFA 8084 - Profil beyaz {size}px.png")

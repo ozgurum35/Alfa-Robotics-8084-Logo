@@ -521,7 +521,7 @@ def letter_A(p_outer, long_left):
     return [aL, aR, ro, ri, notch, li, p_outer], aL, aR
 
 
-ALFA_SHIFT = -8.318251   # pt along the lettering line (negative = left)
+ALFA_SHIFT = float(__import__('os').environ.get('ALFA_SHIFT', '-4.369323'))   # pt along the lettering line (negative = left)
 
 
 def letters(Wd, gA=4.0, gLF=7.0, sh=0.0):
@@ -709,17 +709,41 @@ groups = [
 ]
 PAL = {"Lacivert": NAVY, "Acik Mavi": SKY, "Buz": ICE}
 MARG = 0.07
-# v11 frame: centred on the shield axis and midway between the nose top and the shield tip
+# v11 frame circle: centred on the shield axis; its height is chosen so that the vertical distance from the nose top up
+# to the profile circle equals the one from the shield tip down to it (profile circle = frame circle / 0.92)
 _raw = np.vstack([sample(J_(s_), 12) for _, items_ in groups for _, _, subs_ in items_ for s_ in subs_])
-CEN = V(X0, (_raw[:, 1].min() + _raw[:, 1].max()) / 2)
-RF = float(np.hypot(_raw[:, 0] - CEN[0], _raw[:, 1] - CEN[1]).max())     # frame circle through the farthest point
-side = math.ceil(2 * RF * (1 + MARG))
-off = V(side / 2, side / 2) - CEN
-_Rp = RF / 0.92
-_gl = LT["A1"][6][0] - (CEN[0] - math.sqrt(_Rp ** 2 - (LT["A1"][6][1] - CEN[1]) ** 2))
-_gr = (CEN[0] + math.sqrt(_Rp ** 2 - (LT["A2"][2][1] - CEN[1]) ** 2)) - LT["A2"][2][0]
-print("frame: centre (%.3f, %.3f) RF %.3f | A tip -> profile circle: left %.4f right %.4f pt" % (CEN[0], CEN[1], RF, _gl, _gr))
-out = {"width": side, "height": side, "circle": [side / 2, side / 2, round(RF, 4)], "groups": []}
+_nt, _tp = V(NOSE_C[0], NOSE_C[1] - rn), V(X0, TIPY)          # nose top, shield tip
+def _frame(cy_):
+    rf_ = float(np.hypot(_raw[:, 0] - X0, _raw[:, 1] - cy_).max()); rp_ = rf_ / 0.92
+    return rf_, rp_, _nt[1] - (cy_ - math.sqrt(rp_ ** 2 - (_nt[0] - X0) ** 2)), (cy_ + rp_) - _tp[1]
+_lo, _hi = _nt[1], _tp[1]
+for _ in range(80):
+    _cy = (_lo + _hi) / 2
+    _, _, _gt, _gb = _frame(_cy)
+    if _gt > _gb: _lo = _cy
+    else: _hi = _cy
+CEN = V(X0, _cy)
+RF, _Rp, _gt, _gb = _frame(_cy)                                # frame circle through the farthest point
+# square artboard: centred on the shield axis and midway between the nose top and the shield tip, so the shield
+# corners are equally far from the left / right edges and nose top / shield tip from the top / bottom edges
+SQ = V(X0, (_nt[1] + _tp[1]) / 2)
+side = math.ceil(2 * float(np.hypot(_raw[:, 0] - SQ[0], _raw[:, 1] - SQ[1]).max()) * (1 + MARG))
+off = V(side / 2, side / 2) - SQ
+def _gaps(s_):
+    l_, r_ = LT["A1"][6] + s_ * dU, LT["A2"][2] + s_ * dU
+    return l_[0] - (X0 - math.sqrt(_Rp ** 2 - (l_[1] - _cy) ** 2)), (X0 + math.sqrt(_Rp ** 2 - (r_[1] - _cy) ** 2)) - r_[0]
+_lo, _hi = -20.0, 20.0
+for _ in range(80):
+    _m = (_lo + _hi) / 2
+    _a, _b = _gaps(_m)
+    if _a > _b: _hi = _m
+    else: _lo = _m
+print("frame: centre (%.4f, %.4f) RF %.4f Rp %.4f | nose top (%.3f, %.3f) raw top %.3f" % (CEN[0], CEN[1], RF, _Rp, _nt[0], _nt[1], _raw[:, 1].min()))
+print("PTS " + " ".join("%.4f" % v_ for v_ in (_nt[0], _nt[1], _tp[0], _tp[1], LT["A1"][6][0], LT["A1"][6][1], LT["A2"][2][0], LT["A2"][2][1], CEN[0], CEN[1], _Rp, side, SQ[1], _raw[:, 0].min(), _raw[:, 0].max())))
+print("SQUARE side %d centre y %.4f | edge gaps: nose top %.4f shield tip %.4f | art left %.4f right %.4f | circle centre is %.4f pt above the square centre" % (
+    side, SQ[1], _nt[1] - (SQ[1] - side / 2), (SQ[1] + side / 2) - _tp[1], _raw[:, 0].min() - (X0 - side / 2), (X0 + side / 2) - _raw[:, 0].max(), SQ[1] - CEN[1]))
+print("GAPS vertical: top %.6f bottom %.6f | horizontal: left %.6f right %.6f | next ALFA_SHIFT %.6f" % ((_gt, _gb) + _gaps(0) + (ALFA_SHIFT + _m,)))
+out = {"width": side, "height": side, "circle": [side / 2, round(float(side / 2 + CEN[1] - SQ[1]), 4), round(RF, 4)], "groups": []}
 allpts = []
 for gname, items in groups:
     jg = {"name": gname, "items": []}
