@@ -6,8 +6,9 @@ from urllib.parse import quote
 import pymupdf
 from PIL import Image, ImageDraw, ImageFont
 
-TAG = sys.argv[1] if len(sys.argv) > 1 else "v11.1"
-VER = TAG                        # logo version = family folder and file names
+import guncel_logo
+VER = guncel_logo.VER             # logo version = family folder and file names
+TAG = sys.argv[1] if len(sys.argv) > 1 else VER   # git tag the links point to
 REPO = "https://github.com/ozgurum35/Alfa-Robotics-8084-Logo"
 REL = f"Yeniden Olusturulan/{VER} surum ailesi/"
 ROOT = "D:/CLAUDE/Alfa Logo/" + REL
@@ -83,7 +84,7 @@ for i, (f, v, bg, title, where) in enumerate(VARIANTS):
                   links(f, v) + " · " + links(f, v, ("png4",)), tree(f"{f}/{v}")))
 yatay_cards = cards[7:]; cards = cards[:7]
 prof = " · ".join(f'<a href="{url("Profil/ALFA 8084 - Profil " + c + " " + s + "px.png")}">{c.capitalize()} {s}</a>'
-                  for c in ("beyaz", "lacivert") for s in ("400", "1080"))
+                  for c in ("beyaz", "lacivert") for s in ("400", "1080", "2048", "4096"))
 # every logo also comes on a filled square and a filled circle (profile pictures, stickers, badges)
 prof += "<br>Kare / daire zeminli: " + " · ".join(f'<a href="{tree(f)}">{f}</a>' for f in (
     "Amblem Kare", "Amblem Daire", "Yazi Logo Kare", "Yazi Logo Daire", "Yatay Logo Kare", "Yatay Logo Daire"))

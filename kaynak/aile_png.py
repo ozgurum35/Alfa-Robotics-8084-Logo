@@ -52,7 +52,7 @@ P = ROOT + "Profil/"
 os.makedirs(P, exist_ok=True)
 em = ROOT + "Amblem/Renkli/ALFA 8084 - Amblem v11.1 - Renkli.pdf"
 emd = ROOT + "Amblem/Koyu zemin/ALFA 8084 - Amblem v11.1 - Koyu zemin.pdf"
-for size in (400, 1080):
+for size in (400, 1080, 2048, 4096):
     # artboard has a 10% margin on each side: 0.86 / (1 - 2 * 0.0833) keeps the art at ~86% of the side
     profile(em, size, (255, 255, 255, 255)).convert("RGB").save(f"{P}ALFA 8084 - Profil beyaz {size}px.png")
     profile(emd, size, NAVY + (255,), border=8.0).convert("RGB").save(f"{P}ALFA 8084 - Profil lacivert {size}px.png")
