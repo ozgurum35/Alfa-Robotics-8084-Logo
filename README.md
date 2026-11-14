@@ -4,7 +4,7 @@ FRC takımı ALFA Robotics 8084'ün kurtlu amblemi ve yazı logosunun parametrik
 
 ## Klasörler
 - `ALFA LOGO-2026.ai`, `ALFA LOGO 2-2026.ai` – özgün dosyalar (dokunulmaz).
-- `Yeniden Olusturulan/` – üretilen sürümler. Onaylı son: `ALFA 8084 - Amblem v8.ai`, `ALFA 8084 - Yazi Logo v6.ai`. Sıradaki: v10 (v9 numarası kullanılmaz).
+- `Yeniden Olusturulan/` – üretilen sürümler. **Güncel logo: v11.1** (`ALFA 8084 - Amblem v11.1.ai`, `ALFA 8084 - Yazi Logo v11.1.ai`, hazır dosyalar `v11.1 surum ailesi/`). Eski sürümler karşılaştırma için durur. İndirmek için [Releases](https://github.com/ozgurum35/Alfa-Robotics-8084-Logo/releases) sayfasına bakın.
 - `kaynak/` – parametrik kaynak ve araçlar (ayrıntı: `docs/DEVIR v10-2.md`).
 - `kaynak/v10_calisma/` – v10 karar turunun soru/sonuç görselleri ve varyant PDF'leri.
 - `docs/` – proje notları ve devir belgeleri. **Okuma sırası:** `docs/DEVIR v10.md` → `docs/DEVIR v10-2.md` → `docs/NOTLAR.md`.
