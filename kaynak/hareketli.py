@@ -13,7 +13,8 @@ W, H, FPS, T = 1080, 2340, 30, 10.0
 N = int(FPS * T)
 SKY, ICE, NEON = (99, 196, 242), (208, 233, 232), (40, 140, 255)
 ROOT = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/"
-EM = ROOT + "v11 surum ailesi/Amblem/Koyu zemin/ALFA 8084 - Amblem v11 - Koyu zemin.pdf"
+import guncel_logo
+EM = guncel_logo.pdf("Amblem", "Koyu zemin")
 OUT = ROOT + "Hareketli Duvar Kagidi/"
 CX, CY = W / 2, round(0.555 * H)
 LW = 640
@@ -24,12 +25,7 @@ rng = np.random.default_rng(8084)
 
 
 def render(width):
-    page = pymupdf.open(EM)[0]
-    z = width * 1.35 / page.rect.width
-    p = page.get_pixmap(matrix=pymupdf.Matrix(z, z), alpha=True)
-    im = Image.frombytes("RGBa", (p.width, p.height), p.samples).convert("RGBA")
-    im = im.crop(im.getchannel("A").getbbox())
-    return im.resize((width, round(im.height * width / im.width)), Image.LANCZOS)
+    return guncel_logo.render(EM, width)
 def solid(A, color, k=1.0):
     im = Image.new("RGBA", A.size, color + (255,)); im.putalpha(A.point(lambda v: int(min(255, v * k)))); return im
 def fade(im, k):

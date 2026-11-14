@@ -12,7 +12,8 @@ W, H, FPS, T = 1080, 2340, 30, 10.0
 N = int(FPS * T)
 NAVY, SKY, ICE, NEON, WHITE = (0, 58, 111), (99, 196, 242), (208, 233, 232), (40, 140, 255), (255, 255, 255)
 ROOT = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/"
-EMD = ROOT + "v11 surum ailesi/Amblem/Koyu zemin/ALFA 8084 - Amblem v11 - Koyu zemin.pdf"
+import guncel_logo
+EMD = guncel_logo.pdf("Amblem", "Koyu zemin")
 OUT = ROOT + "Hareketli Duvar Kagitlari/"
 CX, CY = W / 2, round(0.535 * H)
 TAU = 2 * math.pi
@@ -78,12 +79,7 @@ _LOGO = {}
 def logo(width, path=EMD):
     key = (width, path)
     if key not in _LOGO:
-        page = pymupdf.open(path)[0]
-        z = width * 1.35 / page.rect.width
-        p = page.get_pixmap(matrix=pymupdf.Matrix(z, z), alpha=True)
-        im = Image.frombytes("RGBa", (p.width, p.height), p.samples).convert("RGBA")
-        im = im.crop(im.getchannel("A").getbbox())
-        _LOGO[key] = im.resize((width, round(im.height * width / im.width)), Image.LANCZOS)
+        _LOGO[key] = guncel_logo.render(path, width)
     return _LOGO[key]
 def neon(width, col=NEON, rim=(90, 200, 255), rimpx=2):
     L = logo(width); A = L.getchannel("A"); AP = pad(A)
