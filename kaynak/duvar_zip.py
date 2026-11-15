@@ -2,6 +2,7 @@
 #   Masaustu/                      desktop, 3840x2160
 #   Cep Telefonu/Hareketsiz/       phone stills, 2160x4680
 #   Cep Telefonu/Hareketli/        phone videos (MP4) + Kapak gorselleri/ (their cover images)
+#   Cep Telefonu/Live Photo (iPhone 4K)/   JPG + MOV pairs from livephoto_4k.py + Nasil kullanilir.txt
 # usage: python duvar_zip.py <out dir>   -> ALFA-8084-Duvar-Kagitlari.zip + Onizleme-Duvar-Kagitlari.jpg
 import glob, os, sys, zipfile
 from PIL import Image
@@ -13,6 +14,9 @@ desk = sorted(glob.glob(R + "Masaustu Duvar Kagitlari/*.jpg"))
 still = sorted(glob.glob(R + "Duvar Kagitlari/*.jpg"))
 vid = sorted(glob.glob(R + "Hareketli Duvar Kagitlari/*.mp4")) + sorted(glob.glob(R + "Hareketli Duvar Kagidi/*.mp4"))
 cover = [v[:-4] + " (kapak).jpg" for v in vid]
+live = sorted(glob.glob(R + "Live Photo 4K/*.JPG")) + sorted(glob.glob(R + "Live Photo 4K/*.MOV"))
+assert len(live) == 34, len(live)
+LIVE_TXT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "live_photo_nasil.txt")
 assert len(desk) == 28 and len(still) == 20 and len(vid) == 17 and all(os.path.exists(c) for c in cover), (len(desk), len(still), len(vid))
 z = os.path.join(out, "ALFA-8084-Duvar-Kagitlari.zip")
 with zipfile.ZipFile(z, "w", zipfile.ZIP_STORED) as f:
@@ -20,7 +24,9 @@ with zipfile.ZipFile(z, "w", zipfile.ZIP_STORED) as f:
     for x in still: f.write(x, "Cep Telefonu/Hareketsiz/" + os.path.basename(x))
     for x in vid: f.write(x, "Cep Telefonu/Hareketli/" + os.path.basename(x))
     for x in cover: f.write(x, "Cep Telefonu/Hareketli/Kapak gorselleri/" + os.path.basename(x))
-print(z, os.path.getsize(z) // 2 ** 20, "MB |", len(desk), "masaustu,", len(still), "hareketsiz,", len(vid), "hareketli")
+    for x in live: f.write(x, "Cep Telefonu/Live Photo (iPhone 4K)/" + os.path.basename(x))
+    f.write(LIVE_TXT, "Cep Telefonu/Live Photo (iPhone 4K)/Nasil kullanilir.txt")
+print(z, os.path.getsize(z) // 2 ** 20, "MB |", len(desk), "masaustu,", len(still), "hareketsiz,", len(vid), "hareketli,", len(live) // 2, "live photo")
 
 # preview: phone stills, animated covers, desktop
 tw, th, dw, dh, m = 150, 325, 300, 169, 8

@@ -1,0 +1,21 @@
+ALFA ROBOTICS 8084 - iPhone Live Photo duvar kağıtları (4K)
+
+Her duvar kağıdı aynı adlı iki dosyadan oluşur:
+  .JPG  fotoğraf, 2160 x 4680
+  .MOV  3 saniyelik hareket (HEVC, 2016 x 4368)
+İki dosya birlikte bir Live Photo'dur. JPG tek başına yalnızca durağan resimdir.
+
+iPhone'a aktarma
+  Mac'iniz varsa: iki dosyayı birlikte seçip AirDrop ile iPhone'a gönderin.
+  Fotoğraflar'da "CANLI" etiketiyle görünmelidir.
+
+  Yalnızca Windows varsa: Apple'ın Windows'tan Live Photo aktarmak için resmî bir yolu yok.
+  MOV dosyasını iPhone'a gönderip (ör. iCloud Drive) videoyu Fotoğraflar'a kaydedin.
+  Sonra "video'dan Live Photo" yapan bir uygulamayla (ör. intoLive) Live Photo'ya çevirin.
+
+Duvar kağıdı yapma
+  Ayarlar > Duvar Kağıdı > Yeni Duvar Kağıdı Ekle > Fotoğraflar > Live Photo'yu seçin.
+  Önizlemede Live Photo düğmesi açık olsun.
+  Hareket yalnızca kilit ekranında oynar (iOS 17 ve sonrası).
+  Düşük Güç Modu açıkken hareket oynamaz.
+  iPhone "hareket desteklenmiyor" derse yine durağan duvar kağıdı olarak kullanılabilir.

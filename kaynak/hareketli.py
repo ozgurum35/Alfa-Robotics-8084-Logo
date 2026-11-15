@@ -3,13 +3,16 @@
 # pulsing neon-blue rim; blue diagonal bars in the corners, wet reflective floor at the bottom.
 # Every motion repeats a whole number of times per loop, so the video loops without a jump.
 # Usage: python hareketli.py        (needs imageio-ffmpeg); output: Yeniden Olusturulan/Hareketli Duvar Kagidi/
+# All sizes are written for 1080 px width and multiplied by Z (env ALFA_Z, default 1; 2 = 2160 x 4680 for livephoto_4k.py).
 import math, os, subprocess, sys
 import numpy as np
 import pymupdf
 import imageio_ffmpeg
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-W, H, FPS, T = 1080, 2340, 30, 10.0
+Z = float(os.environ.get("ALFA_Z", "1"))
+def px(v): return max(1, int(round(v * Z)))   # integer pixel size at scale Z
+W, H, FPS, T = px(1080), px(2340), 30, 10.0
 N = int(FPS * T)
 SKY, ICE, NEON = (99, 196, 242), (208, 233, 232), (40, 140, 255)
 ROOT = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/"
@@ -17,7 +20,7 @@ import guncel_logo
 EM = guncel_logo.pdf("Amblem", "Koyu zemin")
 OUT = ROOT + "Hareketli Duvar Kagidi/"
 CX, CY = W / 2, round(0.555 * H)
-LW = 640
+LW = px(640)
 FLOOR = round(0.885 * H)
 YY, XX = np.mgrid[0:H, 0:W].astype(np.float32)
 TAU = 2 * math.pi
@@ -43,11 +46,11 @@ def noise(w, h, octaves, seed):
 
 # ---------- background: near-black navy, lighter behind the logo ----------
 d = np.hypot((XX - CX) * 1.1, YY - CY * 0.9)
-bg = np.array((2, 6, 16), np.float32) + (np.array((6, 26, 62), np.float32) * np.clip(1 - d / 1300, 0, 1)[..., None] ** 1.4)
+bg = np.array((2, 6, 16), np.float32) + (np.array((6, 26, 62), np.float32) * np.clip(1 - d / (1300 * Z), 0, 1)[..., None] ** 1.4)
 BG = Image.fromarray(np.clip(bg, 0, 255).astype(np.uint8), "RGB").convert("RGBA")
 
 # ---------- storm clouds (wider than the screen; drift back and forth once per loop) ----------
-CW = W + 240
+CW = W + px(240)
 n1 = noise(CW, H, ((4, 1.0), (8, 0.55), (16, 0.3), (32, 0.16), (64, 0.08)), 1)
 n2 = noise(CW, H, ((6, 1.0), (12, 0.5), (24, 0.25), (48, 0.12)), 2)
 cy_, cx_ = np.mgrid[0:H, 0:CW].astype(np.float32)
@@ -60,15 +63,15 @@ CLOUD = to_img(crgb / np.maximum(dens, 0.05)[..., None], np.clip(dens * 0.95, 0,
 CLOUD_LIT = to_img(np.array((90, 150, 255), np.float32) * np.ones_like(dens)[..., None], np.clip(edge * 0.8 + dens * 0.25, 0, 1))
 
 # ---------- ghost wolf: upper part of the emblem, large and faint ----------
-big = render(1500)
+big = render(px(1500))
 gw = big.crop((0, 0, big.width, round(big.height * 0.56)))
 ga = np.asarray(gw).astype(np.float32) / 255
 icy = np.clip(1 - np.abs(ga[..., :3] - np.array((208, 233, 232)) / 255).sum(-1) / 0.25, 0, 1)   # the ice-white wolf only
 gal = icy * ga[..., 3]
 gal *= np.clip(1 - (np.arange(gw.height)[:, None] / gw.height - 0.55) / 0.45, 0, 1)   # fade out downwards
-GHOST = to_img(np.array((150, 190, 235), np.float32) * np.ones_like(gal)[..., None], gal * 0.30).filter(ImageFilter.GaussianBlur(2))
-GHOST_POS = (round(CX - gw.width / 2 - 40), round(0.06 * H))
-GHOST_GLOW = solid(GHOST.getchannel("A"), NEON, 1.4).filter(ImageFilter.GaussianBlur(30))
+GHOST = to_img(np.array((150, 190, 235), np.float32) * np.ones_like(gal)[..., None], gal * 0.30).filter(ImageFilter.GaussianBlur(2 * Z))
+GHOST_POS = (round(CX - gw.width / 2 - 40 * Z), round(0.06 * H))
+GHOST_GLOW = solid(GHOST.getchannel("A"), NEON, 1.4).filter(ImageFilter.GaussianBlur(30 * Z))
 
 # ---------- lightning: three bolt sets, each flickers at its own time ----------
 def bolt(p0, p1, disp, depth, r, out, branch=True):
@@ -83,20 +86,20 @@ def bolt(p0, p1, disp, depth, r, out, branch=True):
         bolt(m, e, disp / 2, depth - 2, r, sub, False); out.extend((s[0], s[1], 1) for s in sub)
 def bolt_layer(paths, seed):
     r = np.random.default_rng(seed); segs = []
-    for p0, p1 in paths: bolt(p0, p1, 120, 8, r, segs)
+    for p0, p1 in paths: bolt(p0, p1, 120 * Z, 8, r, segs)
     core = Image.new("RGBA", (W, H), (0, 0, 0, 0)); dc = ImageDraw.Draw(core)
     wide = Image.new("RGBA", (W, H), (0, 0, 0, 0)); dw = ImageDraw.Draw(wide)
     for s in segs:
         thin = len(s) == 3; p, q = s[0], s[1]
-        dw.line((p, q), fill=NEON + (255,), width=7 if thin else 16)
-        dc.line((p, q), fill=(225, 240, 255, 255), width=2 if thin else 5)
-    out = wide.filter(ImageFilter.GaussianBlur(45)); out.alpha_composite(wide.filter(ImageFilter.GaussianBlur(45)))
-    out.alpha_composite(wide.filter(ImageFilter.GaussianBlur(8)))
+        dw.line((p, q), fill=NEON + (255,), width=px(7) if thin else px(16))
+        dc.line((p, q), fill=(225, 240, 255, 255), width=px(2) if thin else px(5))
+    out = wide.filter(ImageFilter.GaussianBlur(45 * Z)); out.alpha_composite(wide.filter(ImageFilter.GaussianBlur(45 * Z)))
+    out.alpha_composite(wide.filter(ImageFilter.GaussianBlur(8 * Z)))
     out.alpha_composite(core)
     return out
-BOLTS = [bolt_layer([((-20, 0.30 * H), (CX - 280, 0.47 * H)), ((-20, 0.47 * H), (0.30 * W, 0.40 * H))], 11),
-         bolt_layer([((W + 20, 0.27 * H), (CX + 300, 0.43 * H)), ((W + 20, 0.42 * H), (0.62 * W, 0.62 * H))], 12),
-         bolt_layer([((W + 20, 0.55 * H), (0.62 * W, 0.70 * H)), ((-20, 0.62 * H), (0.22 * W, 0.70 * H))], 13)]
+BOLTS = [bolt_layer([((-20 * Z, 0.30 * H), (CX - 280 * Z, 0.47 * H)), ((-20 * Z, 0.47 * H), (0.30 * W, 0.40 * H))], 11),
+         bolt_layer([((W + 20 * Z, 0.27 * H), (CX + 300 * Z, 0.43 * H)), ((W + 20 * Z, 0.42 * H), (0.62 * W, 0.62 * H))], 12),
+         bolt_layer([((W + 20 * Z, 0.55 * H), (0.62 * W, 0.70 * H)), ((-20 * Z, 0.62 * H), (0.22 * W, 0.70 * H))], 13)]
 # (start as loop fraction, bolt set); each strike: flash, short dip, second flash, decay; a faint afterglow stays
 STRIKES = [(0.06, 0), (0.30, 1), (0.34, 2), (0.58, 0), (0.62, 1), (0.84, 2)]
 def strike(t, t0):
@@ -111,47 +114,48 @@ fr = Image.new("RGBA", (W, H), (0, 0, 0, 0)); dfr = ImageDraw.Draw(fr)
 def bars(x0, y0, sgn):
     for i, (off, w, a, col) in enumerate(((0, 26, 0.9, (30, 90, 255)), (60, 10, 0.7, (60, 140, 255)), (110, 46, 0.35, (20, 50, 140)),
                                            (190, 8, 0.6, (80, 170, 255)), (240, 70, 0.22, (14, 30, 80)))):
-        L = 820; dx, dy = 0.55, -0.835                     # about 57 degrees
+        L = 820 * Z; dx, dy = 0.55, -0.835                 # about 57 degrees
+        off, w = off * Z, w * Z
         ox, oy = x0 + sgn * off, y0 + sgn * off * 0.6
         p = [(ox, oy), (ox + dx * L * sgn, oy + dy * L * sgn), (ox + dx * L * sgn + sgn * w, oy + dy * L * sgn + sgn * w * 0.6), (ox + sgn * w, oy + sgn * w * 0.6)]
         dfr.polygon(p, fill=col + (int(255 * a),))
-bars(-260, 560, 1); bars(W + 260, H - 560, -1)
-BARS = fr.filter(ImageFilter.GaussianBlur(14)); BARS.alpha_composite(fr)
+bars(-260 * Z, 560 * Z, 1); bars(W + 260 * Z, H - 560 * Z, -1)
+BARS = fr.filter(ImageFilter.GaussianBlur(14 * Z)); BARS.alpha_composite(fr)
 fl = np.zeros((H, W), np.float32); fy = (YY - FLOOR) / (H - FLOOR)
-floor_rgb = np.array((4, 10, 22), np.float32) + np.array((10, 40, 90), np.float32) * np.exp(-((XX - CX) / 420) ** 2)[..., None] * np.clip(1 - fy, 0, 1)[..., None]
+floor_rgb = np.array((4, 10, 22), np.float32) + np.array((10, 40, 90), np.float32) * np.exp(-((XX - CX) / (420 * Z)) ** 2)[..., None] * np.clip(1 - fy, 0, 1)[..., None]
 sr = np.random.default_rng(5).random((160, 6)).astype(np.float32)
 streak = np.asarray(Image.fromarray(sr, "F").resize((W, H), Image.BICUBIC))
-floor_rgb += (np.clip((streak - 0.5) / 0.45, 0, 1) * 70 * np.exp(-((XX - CX) / 520) ** 2))[..., None] * np.array((0.45, 0.75, 1.0), np.float32)
+floor_rgb += (np.clip((streak - 0.5) / 0.45, 0, 1) * 70 * np.exp(-((XX - CX) / (520 * Z)) ** 2))[..., None] * np.array((0.45, 0.75, 1.0), np.float32)
 FLOOR_IMG = to_img(floor_rgb, (YY >= FLOOR).astype(np.float32) * 0.97)
-FLOOR_LINE = to_img(np.array((60, 140, 255), np.float32) * np.ones((H, W, 1), np.float32), np.exp(-((YY - FLOOR) / 4) ** 2) * 0.7)
-fog_n = noise(W + 300, H, ((5, 1.0), (10, 0.5), (20, 0.25)), 6)
-FOG = to_img(np.array((70, 110, 170), np.float32) * np.ones((H, W + 300, 1), np.float32),
-             np.exp(-(((np.mgrid[0:H, 0:W + 300][0] - FLOOR + 60) / 110) ** 2)) * (0.25 + 0.5 * fog_n) * 0.55)
+FLOOR_LINE = to_img(np.array((60, 140, 255), np.float32) * np.ones((H, W, 1), np.float32), np.exp(-((YY - FLOOR) / (4 * Z)) ** 2) * 0.7)
+fog_n = noise(W + px(300), H, ((5, 1.0), (10, 0.5), (20, 0.25)), 6)
+FOG = to_img(np.array((70, 110, 170), np.float32) * np.ones((H, W + px(300), 1), np.float32),
+             np.exp(-(((np.mgrid[0:H, 0:W + px(300)][0] - FLOOR + 60 * Z) / (110 * Z)) ** 2)) * (0.25 + 0.5 * fog_n) * 0.55)
 FLOOR_GLOW = to_img(np.array(NEON, np.float32) * np.ones((H, W, 1), np.float32),
-                    (YY >= FLOOR) * np.exp(-((XX - CX) / 260) ** 2) * np.clip(1 - fy * 1.3, 0, 1) * 0.5)
+                    (YY >= FLOOR) * np.exp(-((XX - CX) / (260 * Z)) ** 2) * np.clip(1 - fy * 1.3, 0, 1) * 0.5)
 
 # ---------- logo with neon rim ----------
 L = render(LW); A = L.getchannel("A")
-PAD = 200
+PAD = px(200)
 def padded(im):
     c = Image.new(im.mode, (im.width + 2 * PAD, im.height + 2 * PAD), 0 if im.mode == "L" else (0, 0, 0, 0)); c.paste(im, (PAD, PAD)); return c
 AP = padded(A)
 ring = AP
-for _ in range(2): ring = ring.filter(ImageFilter.MaxFilter(9))
+for _ in range(2): ring = ring.filter(ImageFilter.MaxFilter(2 * px(4) + 1))
 RIM = solid(ring, (90, 200, 255))
-RIM_GLOW = solid(ring, NEON).filter(ImageFilter.GaussianBlur(26))
-BIG_GLOW = solid(AP, NEON).filter(ImageFilter.GaussianBlur(110))
-SHADOW = solid(AP, (0, 0, 0), 0.8).filter(ImageFilter.GaussianBlur(28))
+RIM_GLOW = solid(ring, NEON).filter(ImageFilter.GaussianBlur(26 * Z))
+BIG_GLOW = solid(AP, NEON).filter(ImageFilter.GaussianBlur(110 * Z))
+SHADOW = solid(AP, (0, 0, 0), 0.8).filter(ImageFilter.GaussianBlur(28 * Z))
 LP = padded(L)
-REFL = fade(L.transpose(Image.FLIP_TOP_BOTTOM).filter(ImageFilter.GaussianBlur(10)), 0.22)
+REFL = fade(L.transpose(Image.FLIP_TOP_BOTTOM).filter(ImageFilter.GaussianBlur(10 * Z)), 0.22)
 
-f = ImageFont.truetype("C:/Windows/Fonts/bahnschrift.ttf", 40); f.set_variation_by_name("SemiBold")
-FOOT = Image.new("RGBA", (W, 120), (0, 0, 0, 0)); fd = ImageDraw.Draw(FOOT)
+f = ImageFont.truetype("C:/Windows/Fonts/bahnschrift.ttf", px(40)); f.set_variation_by_name("SemiBold")
+FOOT = Image.new("RGBA", (W, px(120)), (0, 0, 0, 0)); fd = ImageDraw.Draw(FOOT)
 label = "F R C   T E A M   8 0 8 4"; tw = fd.textlength(label, font=f)
-fd.text((W / 2, 60), label, font=f, fill=(170, 185, 200, 230), anchor="mm")
+fd.text((W / 2, px(60)), label, font=f, fill=(170, 185, 200, 230), anchor="mm")
 for s in (-1, 1):
-    x0 = W / 2 + s * (tw / 2 + 36); fd.line((x0, 60, x0 + s * 200, 60), fill=(140, 155, 170, 160), width=3)
-FOOT_Y = round(0.835 * H) - 60
+    x0 = W / 2 + s * (tw / 2 + 36 * Z); fd.line((x0, px(60), x0 + s * 200 * Z, px(60)), fill=(140, 155, 170, 160), width=px(3))
+FOOT_Y = round(0.835 * H) - px(60)
 
 
 def frame(i):
@@ -159,7 +163,7 @@ def frame(i):
     im = BG.copy()
     fl = [strike(t, t0) for t0, _ in STRIKES]
     flash = min(1.0, max(fl))
-    ox = round(-120 + 90 * math.sin(TAU * t))                     # cloud drift
+    ox = round((-120 + 90 * math.sin(TAU * t)) * Z)                     # cloud drift
     im.alpha_composite(CLOUD.crop((-ox, 0, -ox + W, H)))
     if flash > 0.02: im.alpha_composite(fade(CLOUD_LIT.crop((-ox, 0, -ox + W, H)), flash))
     gk = 0.75 + 0.25 * math.sin(TAU * 2 * t) + 0.6 * flash
@@ -174,22 +178,22 @@ def frame(i):
     pulse = 0.5 + 0.5 * math.sin(TAU * 2 * t - 1.0)
     im.alpha_composite(fade(FLOOR_GLOW, 0.6 + 0.4 * pulse + 0.8 * flash))
     im.alpha_composite(fade(FLOOR_LINE, 0.6 + 0.4 * flash))
-    fx = round(-150 - 120 * math.sin(TAU * t))
+    fx = round((-150 - 120 * math.sin(TAU * t)) * Z)
     im.alpha_composite(FOG.crop((-fx, 0, -fx + W, H)))
     # logo: sway +-3 deg once per loop, float up and down twice per loop, neon pulse twice per loop
     a = 3.0 * math.sin(TAU * t)
-    bob = 16 * math.sin(TAU * 2 * t + 0.5)
+    bob = 16 * Z * math.sin(TAU * 2 * t + 0.5)
     x0, y0 = round(CX - LP.width / 2), round(CY - LP.height / 2 + bob)
     def put(layer, k, dy=0):
         r = layer.rotate(a, resample=Image.BICUBIC)
         im.alpha_composite(fade(r, k), (x0, y0 + dy))
     put(BIG_GLOW, 0.35 + 0.35 * pulse + 0.3 * flash)
-    put(SHADOW, 1.0, 24)
+    put(SHADOW, 1.0, px(24))
     put(RIM_GLOW, 0.55 + 0.45 * pulse)
     put(RIM, 0.75 + 0.25 * pulse)
     put(LP, 1.0)
     rf = REFL.crop((0, 0, REFL.width, min(REFL.height, H - FLOOR)))
-    im.alpha_composite(fade(rf, 0.8 + 0.4 * flash if flash else 0.8), (round(CX - REFL.width / 2), FLOOR + 6))
+    im.alpha_composite(fade(rf, 0.8 + 0.4 * flash if flash else 0.8), (round(CX - REFL.width / 2), FLOOR + px(6)))
     im.alpha_composite(FOOT, (0, FOOT_Y))
     return im.convert("RGB")
 
