@@ -1,13 +1,15 @@
-// Badge print sheet: A4 portrait, 6 badges (2 x 3). Cut circle 70 mm, emblem 50 mm (outer edge of the artwork,
-// measured on the emblem's frame circle; on navy the 8 pt white sticker edge is included in the 50 mm).
+// Badge print sheet: A4 portrait, 6 badges (2 x 3). Cut circle 70 mm, emblem 52 mm (outer edge of the artwork,
+// measured on the emblem's frame circle; on navy the 8 pt white sticker edge is included in the 52 mm).
 // Two sheets: white background (colour emblem) and ALFA navy background (dark-background emblem, 2 mm bleed past the cut).
 // Saves .ai, RGB .pdf, .svg, CMYK print PDF and CMYK .eps. PNGs are rendered from the PDF afterwards (rozet_png.py).
 var VER = "v11.1";                 // logo version (keep equal to kaynak/guncel_logo.py VER)
 var SRC = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/" + VER + " surum ailesi/Amblem/";
 var OUT = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/Rozet " + VER + "/";
 var MM = 72 / 25.4;
-var CUT = 70 * MM, LOGO = 50 * MM, BLEED = 2 * MM;
-var PITCH = 80 * MM;               // centre distance, both directions (10 mm between cut circles)
+var CUT = 70 * MM, LOGO = 52 * MM, BLEED = 2 * MM;
+// cut circles spread evenly: in each direction the gaps between circles equal the page margins
+// (horizontal (210 - 2*70) / 3 = 23.33 mm, vertical (297 - 3*70) / 4 = 21.75 mm)
+var COLS = 2, ROWS = 3, GX = (210 * MM - COLS * CUT) / (COLS + 1), GY = (297 * MM - ROWS * CUT) / (ROWS + 1);
 var CY_FROM_TOP = 209.7129;        // frame circle centre in the 440 pt emblem artboard (kaynak/emblem.json "circle")
 // enclosing radius of the artwork about the frame circle centre, pt (measured on the 4096 px renders)
 var REACH = { "Renkli": 196.652, "Koyu zemin": 204.693 };
@@ -27,7 +29,7 @@ function sheet(variant, dark) {
     var dx = tmp.left - cx, dy = tmp.top - cy, s = (LOGO / 2) / REACH[variant];
 
     var d = app.documents.add(DocumentColorSpace.RGB, 210 * MM, 297 * MM);
-    var r = d.artboards[0].artboardRect, X0 = (r[0] + r[2]) / 2, Y0 = (r[1] + r[3]) / 2;
+    var r = d.artboards[0].artboardRect;
     var zemin = d.layers[0]; zemin.name = "Zemin";
     var logoL = d.layers.add(); logoL.name = "Logo";
     var kesim = d.layers.add(); kesim.name = "Kesim çizgisi 70 mm";
@@ -36,8 +38,8 @@ function sheet(variant, dark) {
     proto.resize(s * 100, s * 100, true, true, true, true, s * 100, Transformation.TOPLEFT);
     var bg = dark ? sw(d, "ALFA Lacivert") : rgb(255, 255, 255);
     var grey = rgb(150, 150, 150);
-    for (var row = -1; row <= 1; row++) for (var col = -0.5; col <= 0.5; col += 1) {
-        var x = X0 + col * PITCH, y = Y0 - row * PITCH;
+    for (var row = 0; row < ROWS; row++) for (var col = 0; col < COLS; col++) {
+        var x = r[0] + GX + CUT / 2 + col * (GX + CUT), y = r[1] - (GY + CUT / 2 + row * (GY + CUT));
         var rb = dark ? CUT / 2 + BLEED : CUT / 2;
         var disc = zemin.pathItems.ellipse(y + rb, x - rb, 2 * rb, 2 * rb);
         disc.name = dark ? "Lacivert zemin (2 mm taşma)" : "Beyaz zemin"; disc.filled = true; disc.fillColor = bg; disc.stroked = false;
