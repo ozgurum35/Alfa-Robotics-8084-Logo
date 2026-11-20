@@ -181,6 +181,17 @@ def PR(colour, size, label):
     return f'<a href="{url(f"Profil/ALFA 8084 - Profil {colour} {size}px.png")}">{label}</a>'
 
 
+RZ = "Rozet A4/"                    # badge print sheets (kaynak/rozet.jsx), inside the family folder
+WALL = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/"
+DUVAR = f"{REPO}/releases/tag/duvar-{TAG}"
+
+
+def RL(name, kind, label):
+    """badge sheet link: name = Beyaz / Lacivert, kind = cmyk / pdf / eps"""
+    suf = {"cmyk": " - Baski CMYK.pdf", "pdf": ".pdf", "eps": " - Baski CMYK.eps"}[kind]
+    return f'<a href="{url(f"{RZ}ALFA 8084 - Rozet A4 70 mm {VER} - {name} zemin{suf}")}">{label}</a>'
+
+
 # small pictures for the tables: logo cropped to its ink on a 240x150 card (name -> file, background, folder it opens)
 TH = {"t0": (fname(EM, "Renkli", " 512px.png"), WHITE, "Amblem/Renkli"), "t1": (fname(EM, "Koyu zemin", " 512px.png"), NAVY, "Amblem/Koyu zemin"),
       "t2": (fname(EM, "Tek renk lacivert", " 512px.png"), WHITE, "Amblem/Tek renk lacivert"),
@@ -189,10 +200,16 @@ TH = {"t0": (fname(EM, "Renkli", " 512px.png"), WHITE, "Amblem/Renkli"), "t1": (
       "t6": (fname(YT, "Koyu zemin", " 512px.png"), NAVY, "Yatay Logo/Koyu zemin"),
       "pw": ("Profil/ALFA 8084 - Profil beyaz 400px.png", WHITE, "Profil"), "pn": ("Profil/ALFA 8084 - Profil lacivert 400px.png", NAVY, "Profil"),
       "td": (fname("Amblem Daire", "Renkli", " 512px.png"), (236, 240, 244), "Amblem Daire"),
-      "tk": (fname("Amblem Kare", "Koyu zemin", " 512px.png"), (236, 240, 244), "Amblem Kare")}
+      "tk": (fname("Amblem Kare", "Koyu zemin", " 512px.png"), (236, 240, 244), "Amblem Kare"),
+      "rz": (f"{RZ}ALFA 8084 - Rozet A4 70 mm {VER} - Beyaz zemin 300dpi.png", (236, 240, 244), "Rozet A4"),
+      "rl": (f"{RZ}ALFA 8084 - Rozet A4 70 mm {VER} - Lacivert zemin 300dpi.png", (236, 240, 244), "Rozet A4"),
+      # wallpapers are released separately (duvar-<tag>); the picture opens that release page
+      "wt": (WALL + "Duvar Kagitlari/ALFA 8084 - Duvar Kagidi 01 Teknik Cizim.jpg", (236, 240, 244), DUVAR),
+      "wm": (WALL + "Masaustu Duvar Kagitlari/ALFA 8084 - Masaustu 02 Devre Karti - Yatay Logo.jpg", (236, 240, 244), DUVAR)}
 for n, (src, bg, _) in TH.items():
-    im = Image.open(ROOT + src).convert("RGBA")
+    im = Image.open(src if src.startswith(WALL) else ROOT + src).convert("RGBA")
     if n[0] == "t" and n not in ("td", "tk"): im = im.crop(im.getchannel("A").getbbox())
+    if n in ("rz", "rl"): im = im.crop((0, 0, im.width, im.height * 34 // 100))   # top row of the sheet: two badges
     c = Image.new("RGBA", (240, 150), bg + (255,)); im.thumbnail((216, 132))
     c.alpha_composite(im, ((240 - im.width) // 2, (150 - im.height) // 2))
     if bg == WHITE: ImageDraw.Draw(c).rectangle((0, 0, 239, 149), outline=(210, 216, 222), width=2)
@@ -200,7 +217,8 @@ for n, (src, bg, _) in TH.items():
 
 
 def pic(n, w=92):
-    return f'<a href="{tree(TH[n][2])}"><img src="{n}.png" width="{w}"/></a>'
+    to = TH[n][2]
+    return f'<a href="{to if to.startswith("http") else tree(to)}"><img src="{n}.png" width="{w}"/></a>'
 
 
 # what do you want to do -> which file. Every link says what it is for; no file-type knowledge needed.
@@ -216,12 +234,17 @@ SCREEN = [
      L(YT, "Renkli", "svg", "Site: açık tema") + " · " + L(YT, "Koyu zemin", "svg", "Site: koyu tema") + "<br/>" + L(YT, "Renkli", "png5", "E-posta imzası")),
     ("t5 t6", "Banner, kapak görseli, pankart tasarımı", "Geniş alanlar için en büyük boy.",
      L(YT, "Renkli", "png4", "Açık zemin için") + " · " + L(YT, "Koyu zemin", "png4", "Koyu zemin için")),
+    ("wt wm", "Telefon ve bilgisayar duvar kağıdı", "Telefon (hareketsiz ve hareketli) ve Windows 11 masaüstü (4K). Ayrı ZIP'te; sürüm sayfasından inin.",
+     f'<a href="{DUVAR}">Duvar kağıtları sayfası</a>'),
 ]
 PRINT = [
     ("t0", "Afiş, broşür, kartvizit, davetiye", "Matbaaya bu dosyayı gönderin.", L(EM, "Renkli", "cmyk", "Baskı dosyası")),
     ("t0 t1", "Forma, tişört baskısı", "Kumaşın rengine göre seçin.",
      L(EM, "Renkli", "cmyk", "Açık renk kumaş") + " · " + L(EM, "Koyu zemin", "cmyk", "Koyu renk kumaş")),
-    ("td tk", "Çıkartma (sticker), rozet, robot gövdesi", "Logo hazır daire ya da kare zeminin içinde.",
+    ("rz rl", "Rozet (rozet makinesi)", "A4 sayfada 6 rozet: kesim dairesi 70 mm, logo 52 mm. Yazdırırken ölçek %100 (Gerçek boyut) seçin.",
+     RL("Beyaz", "cmyk", "Beyaz zemin") + " · " + RL("Lacivert", "cmyk", "Lacivert zemin") + '<br/><span class="note">Ev / ofis yazıcısı: </span>'
+     + RL("Beyaz", "pdf", "Beyaz") + " · " + RL("Lacivert", "pdf", "Lacivert") + f' · <a href="{tree("Rozet A4")}">Bütün biçimler</a>'),
+    ("td tk", "Çıkartma (sticker), robot gövdesi", "Logo hazır daire ya da kare zeminin içinde.",
      L("Amblem Daire", "Renkli", "cmyk", "Daire, beyaz") + " · " + L("Amblem Daire", "Koyu zemin", "cmyk", "Daire, lacivert") + "<br/>"
      + L("Amblem Kare", "Renkli", "cmyk", "Kare, beyaz") + " · " + L("Amblem Kare", "Koyu zemin", "cmyk", "Kare, lacivert")),
     ("t5", "Antetli kâğıt, zarf", "Yatay logo, sayfanın üstüne.", L(YT, "Renkli", "cmyk", "Baskı dosyası")),
@@ -308,6 +331,7 @@ Pantone ile baskı yaptıracaksanız (serigrafi, tekstil) baskıdan önce Panton
 <tr><td class="f">SVG</td><td>Web sitesi; lazer, folyo kesim ve CNC yazılımları. Vektör, her boyutta net.</td></tr>
 <tr class="z"><td class="f">PNG</td><td>Ofis programları, Canva, sosyal medya, mesajlaşma. Saydam zemin. 512 px küçük, 1024 px sunum ve web, 2048 px büyük ekran, 4096 px yüksek çözünürlük. Kendi boyutundan büyütmeyin.</td></tr>
 <tr><td class="f">AI</td><td>Adobe Illustrator kaynağı: düzenleme, nakışçıya ve tasarımcıya kaynak.</td></tr>
+<tr class="z"><td class="f">Baskı CMYK EPS</td><td>Yalnız rozet sayfasında: PDF açamayan eski matbaa programları için.</td></tr>
 </table>
 <h2 style="margin-top:12pt">Koruma alanı ve en küçük boyut</h2>
 <table><tr><td style="width:240pt"><img src="clear.png" width="230"/></td><td>

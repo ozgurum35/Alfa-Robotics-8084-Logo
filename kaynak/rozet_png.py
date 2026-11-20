@@ -3,9 +3,9 @@
 import pymupdf
 import numpy as np
 from PIL import Image
-from guncel_logo import VER, ROOT
+from guncel_logo import VER, AILE
 
-OUT = f"{ROOT}Rozet {VER}/"
+OUT = AILE + "Rozet A4/"
 CENTRES = [(x, y) for y in (56.75, 148.5, 240.25) for x in (70 / 3 + 35, 210 - 70 / 3 - 35)]  # mm, rozet.jsx layout (even gaps)
 
 for name, bg in (("Beyaz zemin", (255, 255, 255)), ("Lacivert zemin", (0, 58, 111))):

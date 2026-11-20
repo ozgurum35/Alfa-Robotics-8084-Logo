@@ -1,10 +1,12 @@
 # Interactive logo picker: one self-contained HTML page next to the logo family. Three clicks (which logo, which
 # background, where it is used) and the matching files are listed. Links are relative, so the page works offline
-# inside the unzipped package and on any web host. usage: python secici.py
-import json, os
+# inside the unzipped package and on any web host. usage: python secici.py [tag]  (tag = release, for the wallpaper link)
+import json, os, sys
 import guncel_logo as g
 
 VER, ROOT = g.VER, g.AILE
+TAG = sys.argv[1] if len(sys.argv) > 1 else VER
+DUVAR = f"https://github.com/ozgurum35/Alfa-Robotics-8084-Logo/releases/tag/duvar-{TAG}"   # wallpapers: separate ZIP
 OUT = ROOT + "ALFA 8084 - Logo Secici.html"
 
 LOGOS = [  # id, folder, title, hint, variants (id -> folder variant)
@@ -47,7 +49,9 @@ missing = [path(f + sh, v, suf) for _, f, _, _, vs in LOGOS for v in set(vs.valu
            for _, _, _, files in USES for suf, _, _ in files if not os.path.exists(ROOT + path(f + sh, v, suf))]
 assert not missing, missing[:5]
 profiles = [f"Profil/ALFA 8084 - Profil {c} {s}px.png" for c in ("beyaz", "lacivert") for s in (1080, 4096)]
-assert all(os.path.exists(ROOT + p) for p in profiles)
+profiles += [f"Profil/ALFA 8084 - Profil {c} {s}px.png" for c in ("beyaz", "lacivert") for s in (400, 2048)]
+badges = [f"Rozet A4/ALFA 8084 - Rozet A4 70 mm {VER} - {c} zemin{s}" for c in ("Beyaz", "Lacivert") for s in (" - Baski CMYK.pdf", ".pdf")]
+assert all(os.path.exists(ROOT + p) for p in profiles + badges)
 
 DATA = dict(ver=VER, logos=[dict(id=i, folder=f, title=t, hint=h, variants=v) for i, f, t, h, v in LOGOS],
             grounds=[dict(id=i, title=t, hint=h, dark=d) for i, t, h, d in GROUNDS],
@@ -124,7 +128,13 @@ footer { max-width: 980px; margin: 0 auto; padding: 0 16px 24px; color: var(--mu
 <section><h2><span class="no">★</span>Sık arananlar</h2>
 <p style="margin:0">Profil fotoğrafı (Instagram, WhatsApp, YouTube):
 <a class="plain" href="__P0__" download>Beyaz zeminli</a> · <a class="plain" href="__P2__" download>Lacivert zeminli</a> ·
-daha büyük: <a class="plain" href="__P1__" download>Beyaz 4096</a> · <a class="plain" href="__P3__" download>Lacivert 4096</a></p>
+diğer boylar: <a class="plain" href="__P4__" download>Beyaz 400</a> · <a class="plain" href="__P5__" download>Beyaz 2048</a> · <a class="plain" href="__P1__" download>Beyaz 4096</a> ·
+<a class="plain" href="__P6__" download>Lacivert 400</a> · <a class="plain" href="__P7__" download>Lacivert 2048</a> · <a class="plain" href="__P3__" download>Lacivert 4096</a></p>
+<p style="margin:8px 0 0">Rozet baskı sayfası (A4, 6 rozet, kesim 70 mm, logo 52 mm; yazdırırken ölçek %100):
+matbaaya <a class="plain" href="__B0__" download>Beyaz zemin</a> · <a class="plain" href="__B2__" download>Lacivert zemin</a> ·
+ev / ofis yazıcısı <a class="plain" href="__B1__" download>Beyaz</a> · <a class="plain" href="__B3__" download>Lacivert</a> ·
+<a class="plain" href="__RZTREE__">bütün biçimler (GitHub)</a></p>
+<p style="margin:8px 0 0">Telefon ve bilgisayar duvar kağıtları (ayrı ZIP, internet gerekir): <a class="plain" href="__DUVAR__">Duvar kağıtları sayfası</a></p>
 <p style="margin:8px 0 0">Ayrıntılı kurallar, renk kodları ve yapılmaması gerekenler: <a class="plain" href="ALFA%208084%20-%20Logo%20Kullanim%20Kilavuzu.pdf">Logo Kullanım Kılavuzu (PDF)</a></p>
 </section>
 </main>
@@ -178,5 +188,10 @@ from urllib.parse import quote
 html = HTML.replace("__DATA__", json.dumps(DATA, ensure_ascii=False)).replace("__VER__", VER)
 for i, p in enumerate(profiles):
     html = html.replace(f"__P{i}__", quote(p))
+for i, p in enumerate(badges):
+    html = html.replace(f"__B{i}__", quote(p))
+html = html.replace("__DUVAR__", DUVAR)
+html = html.replace("__RZTREE__", f"https://github.com/ozgurum35/Alfa-Robotics-8084-Logo/tree/{TAG}/" + quote(f"Yeniden Olusturulan/{VER} surum ailesi/Rozet A4"))
+assert "__" not in html.replace("__DATA__", ""), "placeholder left"
 open(OUT, "w", encoding="utf-8", newline="\n").write(html)
 print(OUT, len(html) // 1024, "KB")

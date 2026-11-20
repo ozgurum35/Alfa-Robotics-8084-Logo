@@ -4,7 +4,7 @@
 // Saves .ai, RGB .pdf, .svg, CMYK print PDF and CMYK .eps. PNGs are rendered from the PDF afterwards (rozet_png.py).
 var VER = "v11.1";                 // logo version (keep equal to kaynak/guncel_logo.py VER)
 var SRC = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/" + VER + " surum ailesi/Amblem/";
-var OUT = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/Rozet " + VER + "/";
+var OUT = "D:/CLAUDE/Alfa Logo/Yeniden Olusturulan/" + VER + " surum ailesi/Rozet A4/";   // inside the family: ZIP, picker, guide
 var MM = 72 / 25.4;
 var CUT = 70 * MM, LOGO = 52 * MM, BLEED = 2 * MM;
 // cut circles spread evenly: in each direction the gaps between circles equal the page margins
