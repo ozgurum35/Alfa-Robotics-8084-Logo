@@ -36,6 +36,14 @@ USES = [  # id, title, hint, files: (suffix, label, note)
       (".ai", "Kaynak dosya (AI)", "Nakışçıya ve tasarımcıya; Adobe Illustrator ile açılır"),
       (".pdf", "PDF (ekran renkleri)", "Dijital belge, ofis yazıcısı")]),
 ]
+# step 3 "Rozet": the ready A4 badge sheet (kaynak/rozet.jsx, emblem only); light grounds -> white sheet, dark -> navy
+ROZET = dict(id="rozet", title="Rozet", hint="Rozet makinesi: A4 sayfada 6 rozet (kesim 70 mm, logo 52 mm).",
+             sheets={"acik": "Beyaz", "tek-l": "Beyaz", "koyu": "Lacivert", "tek-b": "Lacivert"},
+             files=[dict(suffix=" - Baski CMYK.pdf", label="Baskı dosyası", note="Matbaaya ve fotokopiciye bunu gönderin; ölçek %100 (Gerçek boyut)"),
+                    dict(suffix=".pdf", label="PDF (ev / ofis yazıcısı)", note="Yazdırırken ölçek %100 (Gerçek boyut) seçin"),
+                    dict(suffix=" 600dpi.png", label="Resim (PNG, 600 dpi)", note="PDF açamayan programlar için"),
+                    dict(suffix=" - Baski CMYK.eps", label="EPS", note="PDF açamayan eski matbaa programları"),
+                    dict(suffix=".ai", label="Kaynak dosya (AI)", note="Adobe Illustrator; ölçüleri değiştirmek için")])
 SHAPES = [("", "Zeminsiz", "Arkası saydam; kendi zemininize koyarsınız."), (" Kare", "Kare içinde", "Dolu kare zemin."),
           (" Daire", "Daire içinde", "Dolu daire zemin; çıkartma, rozet, yuvarlak alan.")]
 
@@ -52,10 +60,12 @@ profiles = [f"Profil/ALFA 8084 - Profil {c} {s}px.png" for c in ("beyaz", "laciv
 profiles += [f"Profil/ALFA 8084 - Profil {c} {s}px.png" for c in ("beyaz", "lacivert") for s in (400, 2048)]
 badges = [f"Rozet A4/ALFA 8084 - Rozet A4 70 mm {VER} - {c} zemin{s}" for c in ("Beyaz", "Lacivert") for s in (" - Baski CMYK.pdf", ".pdf")]
 assert all(os.path.exists(ROOT + p) for p in profiles + badges)
+assert all(os.path.exists(f"{ROOT}Rozet A4/ALFA 8084 - Rozet A4 70 mm {VER} - {c} zemin{f['suffix']}")
+           for c in set(ROZET["sheets"].values()) for f in ROZET["files"] + [dict(suffix=" 300dpi.png")])
 
 DATA = dict(ver=VER, logos=[dict(id=i, folder=f, title=t, hint=h, variants=v) for i, f, t, h, v in LOGOS],
             grounds=[dict(id=i, title=t, hint=h, dark=d) for i, t, h, d in GROUNDS],
-            uses=[dict(id=i, title=t, hint=h, files=[dict(suffix=s, label=l, note=n) for s, l, n in fs]) for i, t, h, fs in USES],
+            uses=[dict(id=i, title=t, hint=h, files=[dict(suffix=s, label=l, note=n) for s, l, n in fs]) for i, t, h, fs in USES] + [ROZET],
             shapes=[dict(suffix=s, title=t, hint=h) for s, t, h in SHAPES])
 
 HTML = r"""<!doctype html>
@@ -163,7 +173,9 @@ function render() {
   $("s2").setAttribute("aria-disabled", !L); $("s3").setAttribute("aria-disabled", !(L && G));
   const done = L && G && U; $("out").hidden = !done; $("empty").hidden = !!done;
   if (!done) return;
+  if (U.id === "rozet") return rozet(L, G, U);
   const variant = L.variants[G.id], folder = L.folder + st.shape;
+  $("o4").parentElement.hidden = false;
   D.shapes.forEach(s => opt($("o4"), s.title, s.hint, st.shape === s.suffix, () => { st.shape = s.suffix; render(); }));
   const pv = $("preview"); pv.style.backgroundImage = `url("${file(folder, variant, " 1024px.png")}")`;
   pv.className = (G.dark && !st.shape) ? "dark" : ""; pv.style.backgroundSize = st.shape ? "100%" : "86%";
@@ -175,6 +187,20 @@ function render() {
     b.textContent = f.label; n.className = "n"; n.textContent = f.note; d.append(b, n);
     a.className = "dl"; a.href = file(folder, variant, f.suffix); a.setAttribute("download", ""); a.textContent = "İndir";
     a.setAttribute("aria-label", `${f.label} dosyasını indir`); li.append(d, a); $("files").appendChild(li);
+  });
+}
+// the badge sheet is one ready page (emblem, white or navy), so no shape choice
+function rozet(L, G, U) {
+  const sheet = U.sheets[G.id], f = s => enc(`Rozet A4/ALFA 8084 - Rozet A4 70 mm ${D.ver} - ${sheet} zemin${s}`);
+  $("o4").parentElement.hidden = true;
+  const pv = $("preview"); pv.style.backgroundImage = `url("${f(" 300dpi.png")}")`; pv.className = ""; pv.style.backgroundSize = "contain";
+  $("picked").textContent = `Rozet · ${sheet} zemin · A4, 6 rozet` + (L.id !== "amblem" ? ` (rozet sayfası amblemle hazırlandı)` : "");
+  $("files").replaceChildren();
+  U.files.forEach(x => {
+    const li = document.createElement("li"), d = document.createElement("div"), b = document.createElement("b"), n = document.createElement("span"), a = document.createElement("a");
+    b.textContent = x.label; n.className = "n"; n.textContent = x.note; d.append(b, n);
+    a.className = "dl"; a.href = f(x.suffix); a.setAttribute("download", ""); a.textContent = "İndir";
+    a.setAttribute("aria-label", `${x.label} dosyasını indir`); li.append(d, a); $("files").appendChild(li);
   });
 }
 function focusStep(n) { const b = document.querySelector(`#o${n} button:not(:disabled)`); if (b) { $("s" + n).scrollIntoView({ behavior: "smooth", block: "nearest" }); b.focus({ preventScroll: true }); } }

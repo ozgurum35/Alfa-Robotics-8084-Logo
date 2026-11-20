@@ -299,6 +299,7 @@ Aynı dosyalar indirdiğiniz ZIP'in içinde de aynı adlarla durur. Ne yapacağ�
 <tr><td><b>Ekranda</b><br/><span class="note">telefon, sunum, sosyal medya, web</span></td><td class="f">PNG</td><td>Resim dosyası. Her programda açılır. Sayı büyüdükçe (512 → 4096) resim büyür.</td></tr>
 <tr class="z"><td><b>Matbaada, kumaşta</b><br/><span class="note">afiş, kartvizit, forma</span></td><td class="f">Baskı CMYK PDF</td><td>Baskı renkleriyle hazırlanmış dosya. Matbaaya her zaman bunu gönderin.</td></tr>
 <tr><td><b>Kesim, nakış, tasarım</b><br/><span class="note">lazer, folyo, nakışçı, tasarımcı</span></td><td class="f">SVG veya AI</td><td>Çizgi (vektör) dosyası. İstenen boyuta bozulmadan büyür.</td></tr>
+<tr class="z"><td><b>Rozet</b><br/><span class="note">rozet makinesi, A4 sayfada 6 rozet</span></td><td class="f">Rozet A4 sayfası</td><td>Kesim dairesi 70 mm, logo 52 mm; beyaz ve lacivert zemin. Matbaaya Baskı CMYK PDF, ev yazıcısına PDF; ölçek %100. {RL("Beyaz", "cmyk", "Beyaz")} · {RL("Lacivert", "cmyk", "Lacivert")}</td></tr>
 </table>
 <p class="box"><b>Kararsız mısınız?</b> Çoğu iş için bu yeterlidir: {L(EM, "Renkli", "png", "Amblem – Renkli – PNG 1024")}.
 Koyu bir zemine koyacaksanız: {L(EM, "Koyu zemin", "png", "Amblem – Koyu zemin – PNG 1024")}.</p>
